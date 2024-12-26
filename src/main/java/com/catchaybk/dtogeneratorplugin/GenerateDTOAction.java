@@ -10,7 +10,10 @@ import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.fileTypes.StdFileTypes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiDirectory;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiFileFactory;
+import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +30,8 @@ public class GenerateDTOAction extends AnAction {
             List<DtoField> dtoFields = dialog.getDtoFields();
             String mainClassName = dialog.getMainClassName();
             String author = dialog.getAuthor();
+            // 獲取類名映射
+            Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
 
             PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
             PsiDirectory directory = currentFile != null ? currentFile.getContainingDirectory() : null;
@@ -35,7 +40,7 @@ public class GenerateDTOAction extends AnAction {
 
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 try {
-                    generateDtoClasses(project, directory, dtoFields, mainClassName, author);
+                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, levelClassNamesMap);
                 } catch (Exception ex) {
                     Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
                 }
@@ -44,15 +49,18 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateDtoClasses(Project project, PsiDirectory directory,
-                                    List<DtoField> allFields, String mainClassName, String author) {
+                                    List<DtoField> allFields, String mainClassName,
+                                    String author, Map<Integer, Map<String, String>> levelClassNamesMap) {
         // 解析DTO結構
-        DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName);
+        DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName, levelClassNamesMap);
 
         // 生成所有類
         generateAllClasses(project, directory, mainStructure, author);
+
     }
 
-    private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName) {
+    private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
+                                             Map<Integer, Map<String, String>> levelClassNamesMap) {
         // 創建主結構
         DtoStructure mainStructure = new DtoStructure(mainClassName);
         Map<Integer, Map<String, DtoStructure>> levelStructures = new HashMap<>();
@@ -74,7 +82,7 @@ public class GenerateDTOAction extends AnAction {
             // 獲取當前層級的結構映射
             currentLevelStructures = levelStructures.computeIfAbsent(level, k -> new HashMap<>());
 
-        for (DtoField field : fields) {
+            for (DtoField field : fields) {
                 // 找到父字段和父結構
                 DtoField parentField = findParentField(allFields, field);
                 DtoStructure parentStructure;
@@ -87,19 +95,40 @@ public class GenerateDTOAction extends AnAction {
                     if (parentStructure == null) continue;
                 }
 
+                // 如果是對象或列表類型，創建新的結構
+                if (field.isObject() || field.isList()) {
+                    // 從配置中獲取類名
+                    Map<String, String> levelMap = levelClassNamesMap.get(level);
+                    String configuredClassName = null;
+                    if (levelMap != null) {
+                        configuredClassName = levelMap.get(field.getDataName());
+                    }
+
+                    // 如果沒有配置的類名，使用默認的
+                    if (configuredClassName == null || configuredClassName.isEmpty()) {
+                        configuredClassName = field.getDataName() + "DTO";
+                    }
+
+                    // 設置子類名稱
+                    field.setChildClassName(configuredClassName);
+
+                    // 更新字段的數據類型
+                    if (field.isList()) {
+                        field.setDataType("List<" + configuredClassName + ">");
+                    } else {
+                        field.setDataType(configuredClassName);
+                    }
+
+                    // 創建子結構
+                    DtoStructure childStructure = new DtoStructure(configuredClassName);
+                    parentStructure.addChildStructure(childStructure, field);
+                    currentLevelStructures.put(field.getDataName(), childStructure);
+                }
+
                 // 添加字段到父結構
                 parentStructure.addField(field);
-
-                // 如果是對象或列表類型，創建新的結構
-                        if (field.isObject() || field.isList()) {
-                            String childClassName = field.getDataName() + "DTO";
-                            field.setChildClassName(childClassName);
-                            DtoStructure childStructure = new DtoStructure(childClassName);
-                            parentStructure.addChildStructure(childStructure, field);
-                    currentLevelStructures.put(field.getDataName(), childStructure);
             }
         }
-    }
         return mainStructure;
     }
 
@@ -112,7 +141,7 @@ public class GenerateDTOAction extends AnAction {
             DtoField field = allFields.get(i);
             if (field.getLevel() == targetLevel && (field.isObject() || field.isList())) {
                 return field;
-}
+            }
             // 如果找到更低層級的字段，則停止查找
             if (field.getLevel() < targetLevel) {
                 break;
@@ -122,7 +151,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                  DtoStructure structure, String author) {
+                                    DtoStructure structure, String author) {
         // 生成當前類
         String classContent = generateDtoClass(structure.getClassName(),
                 structure.getFields(), author);
@@ -209,3 +238,4 @@ public class GenerateDTOAction extends AnAction {
         e.getPresentation().setEnabledAndVisible(project != null);
     }
 }
+// TODO 加上MSGID的處理

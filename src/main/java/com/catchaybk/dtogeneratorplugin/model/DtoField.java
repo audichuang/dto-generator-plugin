@@ -100,15 +100,7 @@ public class DtoField {
 
     public void setChildClassName(String childClassName) {
         this.childClassName = childClassName;
-        if (childClassName != null && !childClassName.isEmpty()) {
-            if (isList()) {
-                this.dataType = "List<" + childClassName + ">";
-            } else {
-                this.dataType = childClassName;
-            }
-        }
     }
-
     public boolean isList() {
         if (dataType == null) return false;
         String lowerType = dataType.toLowerCase().trim();
