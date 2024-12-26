@@ -148,6 +148,10 @@ public class MainDTO {
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
 
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="DTO Generator Notifications"
+                           displayType="BALLOON"/>
+    </extensions>
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <actions>
@@ -159,4 +163,6 @@ public class MainDTO {
             <keyboard-shortcut first-keystroke="control alt D" keymap="$default"/>
         </action>
     </actions>
+
+
 </idea-plugin>
