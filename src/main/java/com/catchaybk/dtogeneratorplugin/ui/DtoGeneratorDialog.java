@@ -15,10 +15,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class DtoGeneratorDialog extends DialogWrapper {
     private JBTable table;
@@ -255,6 +253,24 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
+        // 分析每個層級的對象
+        Map<Integer, Set<String>> levelObjects = new HashMap<>();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            try {
+                int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
+                String dataName = tableModel.getValueAt(i, 1).toString();
+                String dataType = tableModel.getValueAt(i, 2).toString().toLowerCase();
+
+                // 如果是對象類型或列表類型，添加到對應層級的集合中
+                if (dataType.equals("object") || dataType.startsWith("list") ||
+                        dataType.contains("list<") || !isPrimitiveType(dataType)) {
+                    levelObjects.computeIfAbsent(level, k -> new HashSet<>()).add(dataName);
+                }
+            } catch (NumberFormatException e) {
+                // 忽略無效的層級值
+            }
+        }
+
         JPanel configPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -263,32 +279,86 @@ public class DtoGeneratorDialog extends DialogWrapper {
         // 作者欄位
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 2;
         configPanel.add(new JLabel("作者:"), gbc);
 
+        gbc.gridy = 1;
         JTextField authorField = new JTextField(author, 20);
-        gbc.gridx = 1;
         configPanel.add(authorField, gbc);
 
         // 主類名稱
-        gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 2;
         configPanel.add(new JLabel("主類名稱:"), gbc);
 
+        gbc.gridy = 3;
         JTextField mainClassField = new JTextField(mainClassName, 20);
-        gbc.gridx = 1;
         configPanel.add(mainClassField, gbc);
 
+        // 為每個層級的每個對象創建類名輸入欄位
+        Map<String, JTextField> objectClassFields = new HashMap<>();
+        int currentRow = 4;
+
+        for (Map.Entry<Integer, Set<String>> entry : levelObjects.entrySet()) {
+            int level = entry.getKey();
+            Set<String> objects = entry.getValue();
+
+            if (!objects.isEmpty()) {
+                // 添加層級標題
+                gbc.gridy = currentRow++;
+                gbc.gridwidth = 2;
+                configPanel.add(new JLabel("第 " + level + " 層級:"), gbc);
+
+                // 為該層級的每個對象添加輸入欄位
+                for (String objectName : objects) {
+                    gbc.gridy = currentRow++;
+                    gbc.gridwidth = 1;
+                    configPanel.add(new JLabel("    " + objectName + ":"), gbc);
+
+                    String defaultClassName = levelClassNamesMap
+                            .getOrDefault(level, new HashMap<>())
+                            .getOrDefault(objectName, objectName + "DTO");
+                    JTextField classField = new JTextField(defaultClassName, 20);
+                    gbc.gridx = 1;
+                    configPanel.add(classField, gbc);
+                    objectClassFields.put(level + ":" + objectName, classField);
+                    gbc.gridx = 0;
+                }
+            }
+        }
+
         // 記住作者選項
-        gbc.gridy = 2;
-        gbc.gridx = 0;
+        gbc.gridy = currentRow;
         gbc.gridwidth = 2;
         rememberAuthorCheckBox = new JCheckBox("記住作者", !author.isEmpty());
         configPanel.add(rememberAuthorCheckBox, gbc);
-        if (JOptionPane.showConfirmDialog(null, configPanel,
+
+        // 創建一個帶滾動條的面板
+        JScrollPane scrollPane = new JScrollPane(configPanel);
+        scrollPane.setPreferredSize(new Dimension(400, Math.min(500, currentRow * 35)));
+
+        if (JOptionPane.showConfirmDialog(null, scrollPane,
                 "DTO配置", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
 
             author = authorField.getText().trim();
             mainClassName = mainClassField.getText().trim();
+
+            // 清除舊的類名映射
+            levelClassNamesMap.clear();
+
+            // 保存每個對象的類名
+            for (Map.Entry<String, JTextField> entry : objectClassFields.entrySet()) {
+                String key = entry.getKey();
+                String className = entry.getValue().getText().trim();
+
+                if (!className.isEmpty()) {
+                    String[] parts = key.split(":");
+                    int level = Integer.parseInt(parts[0]);
+                    String objectName = parts[1];
+
+                    Map<String, String> levelMap = levelClassNamesMap.computeIfAbsent(level, k -> new HashMap<>());
+                    levelMap.put(objectName, className);
+                }
+            }
 
             if (rememberAuthorCheckBox.isSelected()) {
                 PropertiesComponent.getInstance().setValue(REMEMBERED_AUTHOR_KEY, author);
@@ -298,6 +368,17 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
             configurationDone = true;
         }
+    }
+
+    // 輔助方法：判斷是否為原始類型
+    private boolean isPrimitiveType(String type) {
+        if (type == null) return false;
+        Set<String> primitiveTypes = new HashSet<>(Arrays.asList(
+                "string", "int", "integer", "long", "double", "float",
+                "boolean", "date", "datetime", "bigdecimal", "char",
+                "byte", "short", "void", "decimal"
+        ));
+        return primitiveTypes.contains(type.toLowerCase());
     }
 
     private void addRow() {
