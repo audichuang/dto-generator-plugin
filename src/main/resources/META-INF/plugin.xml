@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>Dto-generator</name>
+    <name>DTO Generator Pro</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="audi51408@gmail.com" url="https://www.google.com">Audi</vendor>
@@ -13,8 +13,136 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description>DTO產生器 自動透過給的表格生成對應的DTO類 可以根據level層級新增DTO的類</description>
+    <description><![CDATA[
+        <h2>DTO 自動生成器 - 高效率的資料傳輸物件生成工具</h2>
 
+        <p>這是一個強大的 IntelliJ IDEA 插件，專門用於簡化 DTO（資料傳輸物件）的建立過程。透過結構化的資料輸入，快速生成符合規範的 DTO 類。</p>
+
+        <h3>主要功能：</h3>
+        <ul>
+            <li><b>快速資料輸入：</b>
+                <ul>
+                    <li>支援直接從 Excel 或文本複製貼上</li>
+                    <li>輸入格式：層級 欄位名稱 資料類型 長度 可否為空 說明</li>
+                    <li>範例：1 CustId String 50 Y 客戶ID</li>
+                </ul>
+            </li>
+            <li><b>智慧程式碼生成：</b>
+                <ul>
+                    <li>自動生成標準格式的 Java DTO 類</li>
+                    <li>自動添加 Jackson @JsonProperty 註解</li>
+                    <li>包含完整的 Javadoc 註解</li>
+                    <li>支援巢狀 DTO 結構</li>
+                </ul>
+            </li>
+            <li><b>多層級 DTO 支援：</b>
+                <ul>
+                    <li>自動根據層級生成巢狀 DTO 類</li>
+                    <li>支援最多三層結構</li>
+                    <li>自動維護 DTO 之間的關聯關係</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>使用方式：</h3>
+        <ol>
+            <li>在 Java 檔案中按右鍵或使用快捷鍵（Ctrl/Cmd + Alt + D）</li>
+            <li>選擇「Generate」→「Generate DTO」</li>
+            <li>在彈出的視窗中貼上您的資料，格式如下：
+                <pre>
+層級 欄位名稱 資料類型 長度 可否為空 說明
+1    CustId   String  50   Y       客戶ID
+1    CaseNo   String  50   Y       案件編號
+                </pre>
+            </li>
+            <li>點擊確定即可生成 DTO 類</li>
+        </ol>
+
+        <h3>輸入格式說明：</h3>
+        <table>
+            <tr>
+                <th>欄位</th>
+                <th>說明</th>
+                <th>範例</th>
+            </tr>
+            <tr>
+                <td>層級</td>
+                <td>DTO 的層級（1-3）</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>欄位名稱</td>
+                <td>變數名稱</td>
+                <td>CustId</td>
+            </tr>
+            <tr>
+                <td>資料類型</td>
+                <td>Java 資料類型</td>
+                <td>String</td>
+            </tr>
+            <tr>
+                <td>長度</td>
+                <td>欄位長度</td>
+                <td>50</td>
+            </tr>
+            <tr>
+                <td>可否為空</td>
+                <td>是否可為空值（Y/N）</td>
+                <td>Y</td>
+            </tr>
+            <tr>
+                <td>說明</td>
+                <td>欄位說明</td>
+                <td>客戶ID</td>
+            </tr>
+        </table>
+
+        <h3>生成的程式碼特點：</h3>
+        <ul>
+            <li>符合 Java 命名規範（駝峰式命名）</li>
+            <li>包含 Jackson 註解以支援 JSON 轉換</li>
+            <li>完整的 Javadoc 註解說明</li>
+            <li>使用 Lombok @Data 註解減少樣板程式碼</li>
+        </ul>
+
+        <h3>程式碼範例：</h3>
+        <pre>
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
+/**
+ * 生成的 DTO 類
+ */
+@Data
+public class MainDTO {
+    /** 客戶ID */
+    @JsonProperty("CustId")
+    private String custId;
+
+    // ... 其他欄位
+}
+        </pre>
+
+        <h3>系統需求：</h3>
+        <ul>
+            <li>IntelliJ IDEA 2021.1 或更新版本</li>
+            <li>Java 8 或更新版本</li>
+        </ul>
+
+        <h3>特別說明：</h3>
+        <p>本插件特別適合需要處理大量 DTO 生成的專案，能夠顯著提高開發效率。支援從 Excel 直接複製資料，自動處理命名規範，並生成符合專案要求的程式碼結構。</p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+        <h3>版本 1.0.0</h3>
+        <ul>
+            <li>首次發布</li>
+            <li>支援多層級 DTO 生成</li>
+            <li>支援結構化資料直接貼上</li>
+            <li>整合 Jackson 註解</li>
+            <li>整合 Lombok 功能</li>
+        </ul>
+    ]]></change-notes>
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
@@ -26,7 +154,7 @@
         <action id="com.catchaybk.dtogeneratorplugin.GenerateDTOAction"
                 class="com.catchaybk.dtogeneratorplugin.GenerateDTOAction"
                 text="Generate DTO"
-                description="Generate DTO classes">
+                description="從結構化資料生成 DTO 類">
             <add-to-group group-id="GenerateGroup" anchor="first"/>
             <keyboard-shortcut first-keystroke="control alt D" keymap="$default"/>
         </action>
