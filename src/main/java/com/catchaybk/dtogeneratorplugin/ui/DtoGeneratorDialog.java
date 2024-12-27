@@ -29,11 +29,13 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private String mainClassName = "MainDTO"; // 添加字段
     private boolean isJava17;
     private String msgId;
+    private boolean isUpstream = true;
 
     public String getMsgId() {
         return msgId;
     }
-     public void setMsgId(String msgId) {
+
+    public void setMsgId(String msgId) {
         this.msgId = msgId;
     }
 
@@ -336,6 +338,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 author,
                 mainClassName,
                 isJava17,
+                isUpstream,
                 levelTypesMap
         );
 
@@ -345,6 +348,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
             author = configDialog.getAuthor();
             mainClassName = configDialog.getMainClassName();
             isJava17 = configDialog.isJava17();
+            isUpstream = configDialog.isUpstream();
 
             // 獲取所有自定義類型的類名配置
             levelClassNamesMap.clear();
@@ -456,5 +460,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     public String getMainClassName() {
         return mainClassName;
+    }
+
+    public boolean isUpstream() {
+        return isUpstream;
     }
 }

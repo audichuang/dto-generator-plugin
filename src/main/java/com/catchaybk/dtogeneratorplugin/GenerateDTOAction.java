@@ -32,6 +32,7 @@ public class GenerateDTOAction extends AnAction {
             String author = dialog.getAuthor();
             String msgId = dialog.getMsgId();
             boolean isJava17 = dialog.isJava17();
+            boolean isUpstream = dialog.isUpstream();
             Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
 
             PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
@@ -41,7 +42,7 @@ public class GenerateDTOAction extends AnAction {
 
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 try {
-                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, msgId, levelClassNamesMap, isJava17);
+                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, msgId, isUpstream, levelClassNamesMap, isJava17);
                 } catch (Exception ex) {
                     Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
                 }
@@ -51,11 +52,11 @@ public class GenerateDTOAction extends AnAction {
 
     private void generateDtoClasses(Project project, PsiDirectory directory,
                                     List<DtoField> allFields, String mainClassName,
-                                    String author, String msgId,
+                                    String author, String msgId, boolean isUpstream,
                                     Map<Integer, Map<String, String>> levelClassNamesMap,
                                     boolean isJava17) {
         DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName, levelClassNamesMap);
-        generateAllClasses(project, directory, mainStructure, author, msgId, isJava17);
+        generateAllClasses(project, directory, mainStructure, author, msgId, isUpstream, isJava17);
     }
 
     private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
@@ -165,13 +166,13 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, String author, String msgId, boolean isJava17) {
+                                    DtoStructure structure, String author, String msgId, boolean isUpstream, boolean isJava17) {
         String classContent = generateDtoClass(structure.getClassName(),
-                structure.getFields(), author, msgId, isJava17);
+                structure.getFields(), author, msgId, isUpstream, isJava17);
         createOrUpdateJavaClass(project, directory, structure.getClassName(), classContent);
 
         for (DtoStructure childStructure : structure.getChildStructures()) {
-            generateAllClasses(project, directory, childStructure, author, msgId, isJava17);
+            generateAllClasses(project, directory, childStructure, author, msgId, isUpstream, isJava17);
         }
     }
 
@@ -201,7 +202,7 @@ public class GenerateDTOAction extends AnAction {
         }
     }
 
-    private String generateDtoClass(String className, List<DtoField> fields, String author, String msgId, boolean isJava17) {
+    private String generateDtoClass(String className, List<DtoField> fields, String author, String msgId, boolean isUpstream, boolean isJava17) {
         StringBuilder sb = new StringBuilder();
         sb.append("package com.example.dto;\n\n");
 
@@ -237,6 +238,7 @@ public class GenerateDTOAction extends AnAction {
         // 添加類註解
         sb.append("/**\n");
         sb.append(" * ").append(msgId).append("\n");
+        sb.append(" * ").append(isUpstream ? "上行/請求電文" : "下行/回應電文").append("\n");
         if (author != null && !author.isEmpty()) {
             sb.append(" * @author ").append(author).append("\n");
                     }

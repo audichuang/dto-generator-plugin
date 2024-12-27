@@ -8,8 +8,10 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DtoConfigDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
@@ -18,6 +20,7 @@ public class DtoConfigDialog extends DialogWrapper {
     private JBTextField authorField;
     private JCheckBox rememberAuthorCheckBox;
     private JComboBox<String> javaVersionComboBox;
+    private JComboBox<String> messageDirectionComboBox; // 新增
     private JBTextField mainClassField;
     private Map<String, JBTextField> classNameFields = new HashMap<>();
     private Map<Integer, List<String>> levelTypesMap;
@@ -25,14 +28,17 @@ public class DtoConfigDialog extends DialogWrapper {
     private String initialMainClassName;
     private String initialMsgId; // 新增
     private boolean initialJava17;
+    private boolean isUpstream; // 新增
 
     public DtoConfigDialog(String msgId, String author, String mainClassName, boolean isJava17,
-                         Map<Integer, List<String>> levelTypesMap) {
+                           boolean isUpstream, // 新增參數
+                           Map<Integer, List<String>> levelTypesMap) {
         super(true);
         this.initialMsgId = msgId;
         this.initialAuthor = author;
         this.initialMainClassName = mainClassName;
         this.initialJava17 = isJava17;
+        this.isUpstream = isUpstream; // 初始化
         this.levelTypesMap = levelTypesMap;
         init();
         setTitle("DTO Generator Configuration");
@@ -60,7 +66,7 @@ public class DtoConfigDialog extends DialogWrapper {
         // 主類配置
         mainClassField = new JBTextField(initialMainClassName);
         addFormRow(mainPanel, "主要類名:", mainClassField, gbc, row++);
-            addSeparator(mainPanel, gbc, row++);
+        addSeparator(mainPanel, gbc, row++);
 
         // 按層級添加類型配置
         for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
@@ -71,25 +77,25 @@ public class DtoConfigDialog extends DialogWrapper {
                 // 添加層級標題
                 JLabel levelLabel = new JLabel("第 " + level + " 層級類型配置");
                 levelLabel.setFont(levelLabel.getFont().deriveFont(Font.BOLD));
-        gbc.gridx = 0;
+                gbc.gridx = 0;
                 gbc.gridy = row++;
-        gbc.gridwidth = 2;
+                gbc.gridwidth = 2;
                 mainPanel.add(levelLabel, gbc);
-        gbc.gridwidth = 1;
+                gbc.gridwidth = 1;
 
                 // 添加該層級的所有類型配置
                 for (String typeName : types) {
                     JBTextField classNameField = new JBTextField();
                     classNameFields.put(typeName, classNameField);
                     addFormRow(mainPanel, "  " + typeName + ":", classNameField, gbc, row++);
-    }
+                }
 
                 // 在每個層級後添加分隔符
                 if (level < Collections.max(levelTypesMap.keySet())) {
                     addSeparator(mainPanel, gbc, row++);
-    }
-    }
-    }
+                }
+            }
+        }
 
         // 創建滾動面板
         JBScrollPane scrollPane = new JBScrollPane(mainPanel);
@@ -125,8 +131,13 @@ public class DtoConfigDialog extends DialogWrapper {
         javaVersionComboBox.setSelectedItem(initialJava17 ? "Java 17" : "Java 8");
         addFormRow(panel, "Java版本:", javaVersionComboBox, gbc, startRow + 3);
 
+        // 電文方向選擇
+        messageDirectionComboBox = new JComboBox<>(new String[]{"上行", "下行"});
+        messageDirectionComboBox.setSelectedItem(isUpstream ? "上行/請求電文" : "下行/回應電文");
+        addFormRow(panel, "電文方向:", messageDirectionComboBox, gbc, startRow + 4);
+
         // 添加分隔符
-        addSeparator(panel, gbc, startRow + 4);
+        addSeparator(panel, gbc, startRow + 5);
     }
 
     private void addFormRow(JPanel panel, String labelText, JComponent field,
@@ -161,6 +172,7 @@ public class DtoConfigDialog extends DialogWrapper {
     public String getMsgId() {
         return msgIdField.getText().trim();
     }
+
     public String getAuthor() {
         return authorField.getText().trim();
     }
@@ -171,7 +183,11 @@ public class DtoConfigDialog extends DialogWrapper {
 
     public boolean isJava17() {
         return "Java 17".equals(javaVersionComboBox.getSelectedItem());
-}
+    }
+
+    public boolean isUpstream() {
+        return "上行".equals(messageDirectionComboBox.getSelectedItem());
+    }
 
     public String getMainClassName() {
         return mainClassField.getText().trim();
