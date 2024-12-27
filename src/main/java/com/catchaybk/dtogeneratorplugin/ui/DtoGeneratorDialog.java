@@ -15,8 +15,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 public class DtoGeneratorDialog extends DialogWrapper {
     private JBTable table;
@@ -306,16 +306,19 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
-        // 收集所有自定義類型
-        Set<String> customTypes = new HashSet<>();
+        // 按層級收集自定義類型
+        Map<Integer, List<String>> levelTypesMap = new TreeMap<>(); // 使用TreeMap確保層級順序
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             String dataName = tableModel.getValueAt(i, 1).toString();
             String dataType = tableModel.getValueAt(i, 2).toString();
+            int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
 
-            // 如果是List或Object類型，添加到自定義類型集合
+            // 如果是List或Object類型，添加到對應層級的集合中
             if (dataType.toLowerCase().contains("list") ||
                     dataType.toLowerCase().equals("object")) {
-                customTypes.add(dataName);
+                levelTypesMap
+                        .computeIfAbsent(level, k -> new ArrayList<>())
+                        .add(dataName);
             }
         }
 
@@ -324,7 +327,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 author,
                 mainClassName,
                 isJava17,
-                new ArrayList<>(customTypes)
+                levelTypesMap
         );
 
         if (configDialog.showAndGet()) {
@@ -335,13 +338,15 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
             // 獲取所有自定義類型的類名配置
             levelClassNamesMap.clear();
-            for (String typeName : customTypes) {
-                String className = configDialog.getClassName(typeName);
-                if (!className.isEmpty()) {
-                    int level = getTypeLevel(typeName);
-                    levelClassNamesMap
-                            .computeIfAbsent(level, k -> new HashMap<>())
-                            .put(typeName, className);
+            for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
+                int level = entry.getKey();
+                for (String typeName : entry.getValue()) {
+                    String className = configDialog.getClassName(typeName);
+                    if (!className.isEmpty()) {
+                        levelClassNamesMap
+                                .computeIfAbsent(level, k -> new HashMap<>())
+                                .put(typeName, className);
+                    }
                 }
             }
 
@@ -358,6 +363,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
         return 0;
     }
+
     private int calculateMaxLevel() {
         boolean hasSupList = false;
         boolean hasSubSeqnoList = false;
@@ -377,7 +383,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
         if (hasSupList) return 1;
         return 0;
     }
-
 
 
     // 輔助方法：判斷是否為原始類型
