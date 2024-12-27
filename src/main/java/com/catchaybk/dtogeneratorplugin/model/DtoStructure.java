@@ -1,8 +1,13 @@
 package com.catchaybk.dtogeneratorplugin.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 public class DtoStructure {
     private String className;
     private List<DtoField> fields;
@@ -34,31 +39,6 @@ public class DtoStructure {
     public String getKey() {
         return (parentField != null ? parentField.getLevel() : "1") + ":" +
                 (parentField != null ? parentField.getDataName() : "main");
-    }
-
-    // Getters and Setters
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public List<DtoField> getFields() {
-        return fields;
-    }
-
-    public List<DtoStructure> getChildStructures() {
-        return childStructures;
-    }
-
-    public DtoField getParentField() {
-        return parentField;
-    }
-
-    public void setParentField(DtoField parentField) {
-        this.parentField = parentField;
     }
 
     // 兼容舊代碼的方法

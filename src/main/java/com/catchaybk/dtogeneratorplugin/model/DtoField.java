@@ -1,9 +1,14 @@
 package com.catchaybk.dtogeneratorplugin.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+@Getter
+@Setter
 public class DtoField {
     private int level;
     private String dataName;
@@ -12,7 +17,7 @@ public class DtoField {
     private boolean nullable;
     private String comments;
     private String childClassName;
-    private boolean isObject; // 新增：標記是否為自定義對象類型
+    private boolean isObject; // 標記是否為自定義對象類型
 
     public DtoField(int level, String dataName, String dataType, String size, boolean nullable, String comments) {
         this.level = level;
@@ -44,63 +49,6 @@ public class DtoField {
         return primitiveTypes.contains(lowerType);
     }
 
-    // Getters
-    public int getLevel() {
-        return level;
-    }
-
-    public String getDataName() {
-        return dataName;
-    }
-
-    public String getDataType() {
-        return dataType;
-    }
-
-    public String getSize() {
-        return size;
-    }
-
-    public boolean isNullable() {
-        return nullable;
-    }
-
-    public String getComments() {
-        return comments;
-    }
-
-    // Setters
-    public void setLevel(int level) {
-        this.level = level;
-    }
-
-    public void setDataName(String dataName) {
-        this.dataName = dataName;
-    }
-
-    public void setDataType(String dataType) {
-        this.dataType = dataType;
-    }
-
-    public void setSize(String size) {
-        this.size = size;
-    }
-
-    public void setNullable(boolean nullable) {
-        this.nullable = nullable;
-    }
-
-    public void setComments(String comments) {
-        this.comments = comments;
-    }
-
-    public String getChildClassName() {
-        return childClassName;
-    }
-
-    public void setChildClassName(String childClassName) {
-        this.childClassName = childClassName;
-    }
     public boolean isList() {
         if (dataType == null) return false;
         String lowerType = dataType.toLowerCase().trim();

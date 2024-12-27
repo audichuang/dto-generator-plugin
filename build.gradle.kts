@@ -1,10 +1,11 @@
 plugins {
     id("java")
     id("org.jetbrains.intellij") version "1.17.4"
+    id("io.freefair.lombok") version "8.4"
 }
 
 group = "com.catchaybk"
-version = "1.0"
+version = "1.1"
 
 repositories {
     mavenCentral()
@@ -18,6 +19,8 @@ intellij {
 
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
+    compileOnly("org.projectlombok:lombok:1.18.30") // 添加Lombok依賴
+    annotationProcessor("org.projectlombok:lombok:1.18.30") // 添加Lombok註解處理器
 }
 
 
