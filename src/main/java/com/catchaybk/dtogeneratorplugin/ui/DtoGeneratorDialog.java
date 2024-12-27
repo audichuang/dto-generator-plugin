@@ -149,8 +149,22 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 comment.append(part.trim());
                 isComment = true;
             } else {
-                // 特殊處理第5列（Nullable）
-                if (currentColumn == 4) {
+                // 特殊處理第3列（Size）
+                if (currentColumn == 3) {
+                    String trimmedPart = part.trim();
+                    // 檢查是否是有效的 Size 值（數字）
+                    if (trimmedPart.matches("\\d+")) {
+                        columns[currentColumn] = trimmedPart;
+                        currentColumn++;
+                    } else {
+                        // 如果不是有效的 Size 值，則視為註釋的開始
+                        if (comment.length() > 0) comment.append(" ");
+                        comment.append(part.trim());
+                        isComment = true;
+                    }
+                }
+                // 特殊處理第4列（Nullable）
+                else if (currentColumn == 4) {
                     String trimmedPart = part.trim();
                     // 檢查是否是有效的 Nullable 值（Y、N、-）
                     if (trimmedPart.matches("[YN-]")) {
