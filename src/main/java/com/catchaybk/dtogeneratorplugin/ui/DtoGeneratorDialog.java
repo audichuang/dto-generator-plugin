@@ -110,60 +110,62 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private void processRow(String row) {
         if (row.isEmpty()) return;
 
-        List<String> cells = new ArrayList<>();
-        StringBuilder currentCell = new StringBuilder();
-        boolean inDataType = false;
-        int fieldCount = 0;
+        String[] columns = new String[6]; // Level, DataName, DataType, Size, Nullable, Comments
+        Arrays.fill(columns, ""); // 初始化為空字符串
 
-        // 先將行按空格分割，但保持 List<Object> 這樣的類型完整
-        List<String> tokens = new ArrayList<>();
-        StringBuilder token = new StringBuilder();
-        boolean inComplexType = false;
+        // 檢查是否是狀態說明行（以數字加冒號開始）
+        if (row.matches("^\\d+:\\s+.*")) {
+            // 將狀態說明添加到前一行的註釋中
+            int lastRow = tableModel.getRowCount() - 1;
+            if (lastRow >= 0) {
+                String currentComment = (String) tableModel.getValueAt(lastRow, 5);
+                String newComment = currentComment + "\n" + row.trim();
+                tableModel.setValueAt(newComment, lastRow, 5);
+            }
+            return;
+        }
 
-        for (char c : row.toCharArray()) {
-            if (c == '<') {
-                inComplexType = true;
-                token.append(c);
-            } else if (c == '>') {
-                inComplexType = false;
-                token.append(c);
-            } else if (Character.isWhitespace(c) && !inComplexType) {
-                if (token.length() > 0) {
-                    tokens.add(token.toString());
-                    token = new StringBuilder();
+        // 使用固定位置的方式處理
+        String[] parts = row.split("\\t|(?:  +)");
+        int currentColumn = 0;
+        StringBuilder comment = new StringBuilder();
+        boolean isComment = false;
+
+        for (String part : parts) {
+            if (part.trim().isEmpty()) continue;
+
+            if (isComment || currentColumn > 4) {
+                // 已經到註釋部分
+                if (comment.length() > 0) comment.append(" ");
+                comment.append(part.trim());
+                isComment = true;
+            } else {
+                // 檢查是否是註釋的開始（通常是中文字符或特殊標記）
+                if (currentColumn == 4 && (part.matches(".*[\\u4e00-\\u9fa5].*") || !part.matches("[YN]"))) {
+                    // 如果第5列不是 Y/N，則視為註釋的開始
+                    if (comment.length() > 0) comment.append(" ");
+                    comment.append(part.trim());
+                    isComment = true;
+                } else {
+                    columns[currentColumn] = part.trim();
+                    currentColumn++;
                 }
-            } else {
-                token.append(c);
-            }
-        }
-        if (token.length() > 0) {
-            tokens.add(token.toString());
-        }
-
-        // 處理分割後的標記
-        for (String t : tokens) {
-            if (fieldCount < 5) {
-                // 處理前5個字段
-                cells.add(t);
-                fieldCount++;
-            } else {
-                // 收集剩餘的所有內容作為註釋
-                if (currentCell.length() > 0) currentCell.append(" ");
-                currentCell.append(t);
             }
         }
 
-        // 如果收集到了完整的行
-        if (fieldCount >= 3) { // 修改為3，因為size和nullable可能為空
-            // 確保至少有5個欄位
-            while (cells.size() < 5) {
-                cells.add("");
-            }
-            // 添加註釋
-            cells.add(currentCell.toString());
-            addTableRow(cells.toArray(new String[0]));
+        // 設置註釋
+        if (comment.length() > 0) {
+            columns[5] = comment.toString().trim();
+        }
+
+        // 只有在必要欄位存在時才添加行
+        if (!columns[0].isEmpty() && !columns[1].isEmpty()) {
+            tableModel.addRow(columns);
         }
     }
+
+
+
 
     private void addTableRow(String[] cells) {
         try {
