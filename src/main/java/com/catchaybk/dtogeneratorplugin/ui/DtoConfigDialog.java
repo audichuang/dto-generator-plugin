@@ -46,28 +46,30 @@ public class DtoConfigDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
-        // 創建主容器面板（使用BorderLayout）
+        // 主容器使用 BorderLayout
         JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBorder(JBUI.Borders.empty(10));
 
-        // 創建一個面板來包含所有配置項（使用GridBagLayout）
-        JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(JBUI.Borders.empty(10));
+        // 創建頂部固定面板（基本配置）
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints topGbc = new GridBagConstraints();
+        topGbc.fill = GridBagConstraints.HORIZONTAL;
+        topGbc.insets = JBUI.insets(5, 5, 5, 5);
+        topGbc.anchor = GridBagConstraints.WEST;
 
+        // 添加基本配置到頂部面板
+        addBasicConfigurations(topPanel, topGbc, 0);
+        // 主類配置也放在頂部固定面板
+        mainClassField = new JBTextField(initialMainClassName);
+        addFormRow(topPanel, "主要類名:", mainClassField, topGbc, 6); // 基本配置後的下一行
+        // 創建可滾動的類型配置面板
+        JPanel typeConfigPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = JBUI.insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
         int row = 0;
-
-        // 基本配置部分
-        addBasicConfigurations(mainPanel, gbc, row);
-        row += 5; // 基本配置佔用4行 + 1行分隔符
-        // 主類配置
-        mainClassField = new JBTextField(initialMainClassName);
-        addFormRow(mainPanel, "主要類名:", mainClassField, gbc, row++);
-        addSeparator(mainPanel, gbc, row++);
-
         // 按層級添加類型配置
         for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
             int level = entry.getKey();
@@ -80,32 +82,42 @@ public class DtoConfigDialog extends DialogWrapper {
                 gbc.gridx = 0;
                 gbc.gridy = row++;
                 gbc.gridwidth = 2;
-                mainPanel.add(levelLabel, gbc);
+                typeConfigPanel.add(levelLabel, gbc);
                 gbc.gridwidth = 1;
 
                 // 添加該層級的所有類型配置
                 for (String typeName : types) {
                     JBTextField classNameField = new JBTextField();
                     classNameFields.put(typeName, classNameField);
-                    addFormRow(mainPanel, "  " + typeName + ":", classNameField, gbc, row++);
-                }
+                    addFormRow(typeConfigPanel, "  " + typeName + ":", classNameField, gbc, row++);
+    }
 
                 // 在每個層級後添加分隔符
                 if (level < Collections.max(levelTypesMap.keySet())) {
-                    addSeparator(mainPanel, gbc, row++);
-                }
-            }
-        }
+                    addSeparator(typeConfigPanel, gbc, row++);
+    }
+    }
+    }
 
-        // 創建滾動面板
-        JBScrollPane scrollPane = new JBScrollPane(mainPanel);
+        // 為類型配置面板添加額外的底部空間
+        JPanel spacer = new JPanel();
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        typeConfigPanel.add(spacer, gbc);
+
+        // 創建滾動面板，只包含類型配置部分
+        JBScrollPane scrollPane = new JBScrollPane(typeConfigPanel);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         // 設置首選大小
-        scrollPane.setPreferredSize(new Dimension(450, 500));
+        scrollPane.setPreferredSize(new Dimension(450, 400));
 
+        // 將固定面板放在頂部，滾動面板放在中間
+        contentPanel.add(topPanel, BorderLayout.NORTH);
         contentPanel.add(scrollPane, BorderLayout.CENTER);
 
         return contentPanel;
@@ -155,7 +167,7 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.weightx = 1.0;
         if (field instanceof JTextField) {
             field.setPreferredSize(new Dimension(250, 30));
-        }
+    }
         panel.add(field, gbc);
     }
 
@@ -184,10 +196,9 @@ public class DtoConfigDialog extends DialogWrapper {
     public boolean isJava17() {
         return "Java 17".equals(javaVersionComboBox.getSelectedItem());
     }
-
     public String getMainClassName() {
         return mainClassField.getText().trim();
-    }
+        }
 
     public String getClassName(String typeName) {
         JBTextField field = classNameFields.get(typeName);
@@ -215,7 +226,7 @@ public class DtoConfigDialog extends DialogWrapper {
                 return "下行/回應電文";
             default:
                 return ""; // 當選擇"無"時返回空字符串
-        }
+}
     }
 
     public String getMessageDirection() {
