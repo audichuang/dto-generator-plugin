@@ -70,23 +70,33 @@ public class DtoField {
 
     public boolean isList() {
         if (dataType == null) return false;
-        // 保持原始大小寫檢查
-        return dataType.trim().startsWith("List<") ||
-                dataType.trim().equals("List");
+        String type = dataType.trim();
+        return type.equalsIgnoreCase("list") || // 添加對純 List 的支援
+                type.toLowerCase().startsWith("list<");
     }
+
 
 
     public boolean isObject() {
         if (dataType == null) return false;
 
-        // 處理泛型類型，保持原始大小寫
-        if (dataType.trim().startsWith("List<")) {
-            String genericType = dataType.substring(dataType.indexOf('<') + 1, dataType.lastIndexOf('>')).trim();
+        String type = dataType.trim();
+
+        // 處理純 List 類型（沒有泛型參數）
+        if (type.equalsIgnoreCase("list")) {
+            return true; // 沒有指定泛型的 List 應該被視為需要創建新類
+        }
+
+        // 處理泛型類型
+        if (type.startsWith("List<") || type.startsWith("list<")) {
+            String genericType = type.substring(type.indexOf('<') + 1, type.lastIndexOf('>')).trim();
             return !isPrimitiveOrWrapperType(genericType);
         }
 
-        return dataType.equals("Object") || (!isPrimitiveType(dataType) && !isList());
+        // 處理其他類型
+        return type.equals("Object") || (!isPrimitiveType(type) && !isList());
     }
+
 
 
     public String getCamelCaseName() {

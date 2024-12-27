@@ -310,4 +310,4 @@ public class GenerateDTOAction extends AnAction {
         e.getPresentation().setEnabledAndVisible(project != null);
     }
 }
-// TODO 加上MSGID的處理
+// TODO 如果用受信超大包 他config dialog包判斷 會不準確不會顯示所有包 要修正 應該是小寫list的問題
