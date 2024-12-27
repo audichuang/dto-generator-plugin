@@ -2,6 +2,7 @@ package com.catchaybk.dtogeneratorplugin.ui;
 
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 
@@ -36,6 +37,10 @@ public class DtoConfigDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
+        // 創建主容器面板
+        JPanel contentPanel = new JPanel(new BorderLayout());
+
+        // 創建內容面板
         JPanel mainPanel = new JPanel(new GridBagLayout());
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
@@ -46,7 +51,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
         int row = 0;
 
-        // 基本配置部分（作者、Java版本等）
+        // 基本配置部分
         authorField = new JBTextField(initialAuthor);
         addFormRow(mainPanel, "作者:", authorField, gbc, row++);
 
@@ -75,10 +80,18 @@ public class DtoConfigDialog extends DialogWrapper {
             }
         }
 
-        // 設置首選大小
-        mainPanel.setPreferredSize(new Dimension(450, (row + 1) * 40));
+        // 創建滾動面板
+        JBScrollPane scrollPane = new JBScrollPane(mainPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
-        return mainPanel;
+        // 設置首選大小
+        scrollPane.setPreferredSize(new Dimension(450, 500));  // 固定高度，允許滾動
+
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+
+        return contentPanel;
     }
 
     private void addFormRow(JPanel panel, String labelText, JComponent field,
@@ -107,10 +120,10 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         panel.add(separator, gbc);
-        gbc.gridwidth = 1; // 重置gridwidth
+        gbc.gridwidth = 1;
     }
 
-    // Getter方法
+    // Getter方法保持不變
     public String getAuthor() {
         return authorField.getText().trim();
     }
