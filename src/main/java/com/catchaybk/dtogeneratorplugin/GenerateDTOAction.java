@@ -205,13 +205,22 @@ public class GenerateDTOAction extends AnAction {
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
         imports.add("lombok.Data");
 
+        // 添加驗證相關的導入
+        imports.add("javax.validation.constraints.NotNull");
+        imports.add("javax.validation.constraints.NotBlank");
+        imports.add("javax.validation.constraints.Size");
+
         // 檢查是否需要List導入
         if (fields.stream().anyMatch(f -> f.isList())) {
             imports.add("java.util.List");
         }
 
         // 添加所有導入
-        imports.forEach(imp -> sb.append("import ").append(imp).append(";\n"));
+        List<String> sortedImports = new ArrayList<>(imports);
+        Collections.sort(sortedImports); // 排序導入語句
+        for (String imp : sortedImports) {
+            sb.append("import ").append(imp).append(";\n");
+        }
         sb.append("\n");
 
         // 添加類註解
@@ -227,10 +236,36 @@ public class GenerateDTOAction extends AnAction {
 
         // 添加字段
         for (DtoField field : fields) {
+            // 添加字段註釋
             if (field.getComments() != null && !field.getComments().isEmpty()) {
                 sb.append("    /** ").append(field.getComments()).append(" */\n");
             }
+
+            // 添加驗證註解
+            if (!field.isNullable()) {
+                if (field.getDataType().toLowerCase().equals("string")) {
+                    sb.append("    @NotBlank\n");
+                } else {
+                    sb.append("    @NotNull\n");
+                }
+            }
+
+            // 添加大小限制註解
+            if (field.getSize() != null && !field.getSize().isEmpty()) {
+                try {
+                    int size = Integer.parseInt(field.getSize());
+                    if (field.getDataType().toLowerCase().equals("string")) {
+                        sb.append("    @Size(max = ").append(size).append(")\n");
+                    }
+                } catch (NumberFormatException ignored) {
+                    // 如果size不是有效的數字，則忽略
+                }
+            }
+
+            // 添加 JsonProperty 註解
             sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
+
+            // 添加字段定義
             sb.append("    private ").append(field.getDataType())
                     .append(" ").append(field.getCamelCaseName()).append(";\n\n");
         }
