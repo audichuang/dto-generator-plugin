@@ -61,11 +61,17 @@ public class GenerateDTOAction extends AnAction {
 
     private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
                                              Map<Integer, Map<String, String>> levelClassNamesMap) {
+        // 找出最小層級
+        int minLevel = allFields.stream()
+                .mapToInt(DtoField::getLevel)
+                .min()
+                .orElse(1); // 如果沒有字段，默認為1
+
         // 創建主結構
         DtoStructure mainStructure = new DtoStructure(mainClassName);
         Map<Integer, Map<String, DtoStructure>> levelStructures = new HashMap<>();
         Map<String, DtoStructure> currentLevelStructures = new HashMap<>();
-        levelStructures.put(1, currentLevelStructures);
+        levelStructures.put(minLevel, currentLevelStructures);
         currentLevelStructures.put("main", mainStructure);
 
         // 按層級分組字段
@@ -75,7 +81,8 @@ public class GenerateDTOAction extends AnAction {
         }
 
         // 處理每一層級
-        for (int level = 1; level <= levelFields.size(); level++) {
+        Set<Integer> levels = new TreeSet<>(levelFields.keySet()); // 使用TreeSet來確保層級順序
+        for (Integer level : levels) {
             List<DtoField> fields = levelFields.get(level);
             if (fields == null) continue;
 
@@ -86,7 +93,7 @@ public class GenerateDTOAction extends AnAction {
                 // 找到父字段和父結構
                 DtoField parentField = findParentField(allFields, field);
                 DtoStructure parentStructure;
-                if (level == 1) {
+                if (level == minLevel) {
                     parentStructure = mainStructure;
                 } else {
                     Map<String, DtoStructure> parentLevelStructures = levelStructures.get(level - 1);

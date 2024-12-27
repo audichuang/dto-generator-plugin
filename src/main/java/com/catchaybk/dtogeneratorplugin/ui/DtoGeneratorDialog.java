@@ -110,7 +110,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private void processRow(String row) {
         if (row.isEmpty()) return;
 
-        String[] columns = new String[6]; // Level, DataName, DataType, Size, Nullable, Comments
+        String[] columns = new String[6];
         Arrays.fill(columns, ""); // 初始化為空字符串
 
         // 檢查是否是狀態說明行（以數字加冒號開始）
@@ -140,12 +140,19 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 comment.append(part.trim());
                 isComment = true;
             } else {
-                // 檢查是否是註釋的開始（通常是中文字符或特殊標記）
-                if (currentColumn == 4 && (part.matches(".*[\\u4e00-\\u9fa5].*") || !part.matches("[YN]"))) {
-                    // 如果第5列不是 Y/N，則視為註釋的開始
-                    if (comment.length() > 0) comment.append(" ");
-                    comment.append(part.trim());
-                    isComment = true;
+                // 特殊處理第5列（Nullable）
+                if (currentColumn == 4) {
+                    String trimmedPart = part.trim();
+                    // 檢查是否是有效的 Nullable 值（Y、N、-）
+                    if (trimmedPart.matches("[YN-]")) {
+                        columns[currentColumn] = trimmedPart;
+                        currentColumn++;
+                    } else {
+                        // 如果不是有效的 Nullable 值，則視為註釋的開始
+                        if (comment.length() > 0) comment.append(" ");
+                        comment.append(part.trim());
+                        isComment = true;
+                    }
                 } else {
                     columns[currentColumn] = part.trim();
                     currentColumn++;
@@ -163,8 +170,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
             tableModel.addRow(columns);
         }
     }
-
-
 
 
     private void addTableRow(String[] cells) {
