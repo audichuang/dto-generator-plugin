@@ -2,6 +2,8 @@ package com.catchaybk.dtogeneratorplugin.ui;
 
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -12,11 +14,11 @@ import java.util.Map;
 public class DtoConfigDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
 
-    private JTextField authorField;
+    private JBTextField authorField;
     private JCheckBox rememberAuthorCheckBox;
     private JComboBox<String> javaVersionComboBox;
-    private JTextField mainClassField;
-    private final Map<Integer, JTextField> levelClassFields = new HashMap<>();
+    private JBTextField mainClassField;
+    private final Map<Integer, JBTextField> levelClassFields = new HashMap<>();
 
     private final int maxLevel;
     private String initialAuthor;
@@ -30,56 +32,90 @@ public class DtoConfigDialog extends DialogWrapper {
         this.initialMainClassName = mainClassName;
         this.initialJava17 = isJava17;
         init();
-        setTitle("DTO Configuration");
+        setTitle("DTO Generator Configuration");
     }
 
     @Override
     protected JComponent createCenterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
+        // 主面板
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBorder(JBUI.Borders.empty(10));
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.gridwidth = 2;
+        gbc.insets = JBUI.insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
         int row = 0;
 
-        // 1. 作者設置
-        addLabelAndField(panel, "作者:", authorField = new JTextField(initialAuthor, 20), gbc, row++);
+        // 作者欄位
+        authorField = new JBTextField(initialAuthor);
+        addFormRow(mainPanel, "作者:", authorField, gbc, row++);
 
-        // 2. 記住作者選項
+        // 記住作者選項
         rememberAuthorCheckBox = new JCheckBox("記住作者", !initialAuthor.isEmpty());
+        gbc.gridx = 1;
         gbc.gridy = row++;
-        panel.add(rememberAuthorCheckBox, gbc);
+        mainPanel.add(rememberAuthorCheckBox, gbc);
 
-        // 3. Java 版本選擇
-        addLabelAndField(panel, "Java版本:",
-                javaVersionComboBox = new JComboBox<>(new String[]{"Java 8", "Java 17"}), gbc, row++);
+        // Java版本選擇
+        javaVersionComboBox = new JComboBox<>(new String[]{"Java 8", "Java 17"});
         javaVersionComboBox.setSelectedItem(initialJava17 ? "Java 17" : "Java 8");
+        addFormRow(mainPanel, "Java版本:", javaVersionComboBox, gbc, row++);
 
-        // 4. 主要類名
-        addLabelAndField(panel, "主要類名:",
-                mainClassField = new JTextField(initialMainClassName, 20), gbc, row++);
+        // 添加分隔線
+        addSeparator(mainPanel, gbc, row++);
 
-        // 5. 第一層級類名（SupList）
-        addLabelAndField(panel, "第一層級類名 (SupList):",
-                levelClassFields.computeIfAbsent(1, k -> new JTextField(20)), gbc, row++);
+        // 主要類名
+        mainClassField = new JBTextField(initialMainClassName);
+        addFormRow(mainPanel, "主要類名:", mainClassField, gbc, row++);
 
-        // 6. 第二層級類名（SubSeqnoList）
-        addLabelAndField(panel, "第二層級類名 (SubSeqnoList):",
-                levelClassFields.computeIfAbsent(2, k -> new JTextField(20)), gbc, row++);
+        // 第一層級類名
+        JBTextField level1Field = new JBTextField();
+        levelClassFields.put(1, level1Field);
+        addFormRow(mainPanel, "第一層級 (SupList):", level1Field, gbc, row++);
 
-        // 創建滾動面板
-        JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setPreferredSize(new Dimension(500, Math.min(500, row * 35)));
-        return scrollPane;
+        // 第二層級類名
+        JBTextField level2Field = new JBTextField();
+        levelClassFields.put(2, level2Field);
+        addFormRow(mainPanel, "第二層級 (SubSeqnoList):", level2Field, gbc, row++);
+
+        // 設置首選大小
+        mainPanel.setPreferredSize(new Dimension(450, row * 40));
+
+        return mainPanel;
     }
 
-    private void addLabelAndField(JPanel panel, String labelText, JComponent field,
-                                  GridBagConstraints gbc, int row) {
+    private void addFormRow(JPanel panel, String labelText, JComponent field,
+                            GridBagConstraints gbc, int row) {
+        // 標籤
+        JLabel label = new JLabel(labelText);
+        label.setPreferredSize(new Dimension(150, 30));
+        gbc.gridx = 0;
         gbc.gridy = row;
-        panel.add(new JLabel(labelText), gbc);
+        gbc.weightx = 0.0;
+        panel.add(label, gbc);
+
+        // 輸入欄位
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        if (field instanceof JTextField) {
+            field.setPreferredSize(new Dimension(250, 30));
+        }
         panel.add(field, gbc);
     }
 
+    private void addSeparator(JPanel panel, GridBagConstraints gbc, int row) {
+        JSeparator separator = new JSeparator();
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(separator, gbc);
+        gbc.gridwidth = 1; // 重置gridwidth
+    }
+
+    // Getter方法
     public String getAuthor() {
         return authorField.getText().trim();
     }
@@ -97,13 +133,12 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     public String getClassName(int level) {
-        JTextField field = levelClassFields.get(level);
+        JBTextField field = levelClassFields.get(level);
         return field != null ? field.getText().trim() : "";
     }
 
     @Override
     protected void doOKAction() {
-        // 保存作者信息
         if (isRememberAuthor()) {
             PropertiesComponent.getInstance().setValue(REMEMBERED_AUTHOR_KEY, getAuthor());
         } else {
