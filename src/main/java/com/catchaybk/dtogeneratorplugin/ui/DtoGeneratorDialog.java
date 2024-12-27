@@ -306,43 +306,57 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
-        // 計算最大層級
-        int maxLevel = calculateMaxLevel();
+        // 收集所有自定義類型
+        Set<String> customTypes = new HashSet<>();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String dataName = tableModel.getValueAt(i, 1).toString();
+            String dataType = tableModel.getValueAt(i, 2).toString();
+
+            // 如果是List或Object類型，添加到自定義類型集合
+            if (dataType.toLowerCase().contains("list") ||
+                    dataType.toLowerCase().equals("object")) {
+                customTypes.add(dataName);
+            }
+        }
 
         // 創建配置對話框
         DtoConfigDialog configDialog = new DtoConfigDialog(
-                maxLevel,
                 author,
                 mainClassName,
-                isJava17
+                isJava17,
+                new ArrayList<>(customTypes)
         );
 
         if (configDialog.showAndGet()) {
-            // 獲取配置值
+            // 獲取基本配置
             author = configDialog.getAuthor();
             mainClassName = configDialog.getMainClassName();
             isJava17 = configDialog.isJava17();
 
-            // 獲取各層級類名
+            // 獲取所有自定義類型的類名配置
             levelClassNamesMap.clear();
-            // 第一層級 SupList
-            String supListClassName = configDialog.getClassName(1);
-            if (!supListClassName.isEmpty()) {
-                Map<String, String> level1Map = new HashMap<>();
-                level1Map.put("SupList", supListClassName);
-                levelClassNamesMap.put(1, level1Map);
-            }
-
-            // 第二層級 SubSeqnoList
-            String subSeqnoListClassName = configDialog.getClassName(2);
-            if (!subSeqnoListClassName.isEmpty()) {
-                Map<String, String> level2Map = new HashMap<>();
-                level2Map.put("SubSeqnoList", subSeqnoListClassName);
-                levelClassNamesMap.put(2, level2Map);
+            for (String typeName : customTypes) {
+                String className = configDialog.getClassName(typeName);
+                if (!className.isEmpty()) {
+                    int level = getTypeLevel(typeName);
+                    levelClassNamesMap
+                            .computeIfAbsent(level, k -> new HashMap<>())
+                            .put(typeName, className);
+                }
             }
 
             configurationDone = true;
         }
+    }
+
+    // 輔助方法：獲取類型的層級
+    private int getTypeLevel(String typeName) {
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            if (tableModel.getValueAt(i, 1).toString().equals(typeName)) {
+                return Integer.parseInt(tableModel.getValueAt(i, 0).toString());
+            }
+        }
+        return 0;
     }
     private int calculateMaxLevel() {
         boolean hasSupList = false;

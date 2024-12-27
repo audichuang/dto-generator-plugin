@@ -4,11 +4,11 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DtoConfigDialog extends DialogWrapper {
@@ -18,26 +18,24 @@ public class DtoConfigDialog extends DialogWrapper {
     private JCheckBox rememberAuthorCheckBox;
     private JComboBox<String> javaVersionComboBox;
     private JBTextField mainClassField;
-    private final Map<Integer, JBTextField> levelClassFields = new HashMap<>();
-
-    private final int maxLevel;
+    private Map<String, JBTextField> classNameFields = new HashMap<>();
+    private List<String> customTypes;
     private String initialAuthor;
     private String initialMainClassName;
     private boolean initialJava17;
 
-    public DtoConfigDialog(int maxLevel, String author, String mainClassName, boolean isJava17) {
+    public DtoConfigDialog(String author, String mainClassName, boolean isJava17, List<String> customTypes) {
         super(true);
-        this.maxLevel = maxLevel;
         this.initialAuthor = author;
         this.initialMainClassName = mainClassName;
         this.initialJava17 = isJava17;
+        this.customTypes = customTypes;
         init();
         setTitle("DTO Generator Configuration");
     }
 
     @Override
     protected JComponent createCenterPanel() {
-        // 主面板
         JPanel mainPanel = new JPanel(new GridBagLayout());
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
@@ -48,40 +46,37 @@ public class DtoConfigDialog extends DialogWrapper {
 
         int row = 0;
 
-        // 作者欄位
+        // 基本配置部分（作者、Java版本等）
         authorField = new JBTextField(initialAuthor);
         addFormRow(mainPanel, "作者:", authorField, gbc, row++);
 
-        // 記住作者選項
         rememberAuthorCheckBox = new JCheckBox("記住作者", !initialAuthor.isEmpty());
         gbc.gridx = 1;
         gbc.gridy = row++;
         mainPanel.add(rememberAuthorCheckBox, gbc);
 
-        // Java版本選擇
         javaVersionComboBox = new JComboBox<>(new String[]{"Java 8", "Java 17"});
         javaVersionComboBox.setSelectedItem(initialJava17 ? "Java 17" : "Java 8");
         addFormRow(mainPanel, "Java版本:", javaVersionComboBox, gbc, row++);
 
-        // 添加分隔線
         addSeparator(mainPanel, gbc, row++);
 
-        // 主要類名
+        // 主類配置
         mainClassField = new JBTextField(initialMainClassName);
         addFormRow(mainPanel, "主要類名:", mainClassField, gbc, row++);
 
-        // 第一層級類名
-        JBTextField level1Field = new JBTextField();
-        levelClassFields.put(1, level1Field);
-        addFormRow(mainPanel, "第一層級 (SupList):", level1Field, gbc, row++);
-
-        // 第二層級類名
-        JBTextField level2Field = new JBTextField();
-        levelClassFields.put(2, level2Field);
-        addFormRow(mainPanel, "第二層級 (SubSeqnoList):", level2Field, gbc, row++);
+        // 為每個自定義類型添加配置欄位
+        if (!customTypes.isEmpty()) {
+            addSeparator(mainPanel, gbc, row++);
+            for (String typeName : customTypes) {
+                JBTextField classNameField = new JBTextField();
+                classNameFields.put(typeName, classNameField);
+                addFormRow(mainPanel, typeName + " 類名:", classNameField, gbc, row++);
+            }
+        }
 
         // 設置首選大小
-        mainPanel.setPreferredSize(new Dimension(450, row * 40));
+        mainPanel.setPreferredSize(new Dimension(450, (row + 1) * 40));
 
         return mainPanel;
     }
@@ -132,8 +127,8 @@ public class DtoConfigDialog extends DialogWrapper {
         return mainClassField.getText().trim();
     }
 
-    public String getClassName(int level) {
-        JBTextField field = levelClassFields.get(level);
+    public String getClassName(String typeName) {
+        JBTextField field = classNameFields.get(typeName);
         return field != null ? field.getText().trim() : "";
     }
 
