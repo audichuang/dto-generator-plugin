@@ -27,6 +27,15 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private JCheckBox rememberAuthorCheckBox;
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
     private String mainClassName = "MainDTO"; // 添加字段
+    private boolean isJava17;
+
+    public boolean isJava17() {
+        return isJava17;
+    }
+
+    public void setJava17(boolean java17) {
+        isJava17 = java17;
+    }
 
     public DtoGeneratorDialog() {
         super(true);
@@ -301,9 +310,17 @@ public class DtoGeneratorDialog extends DialogWrapper {
         JTextField mainClassField = new JTextField(mainClassName, 20);
         configPanel.add(mainClassField, gbc);
 
+        // Java版本選擇
+        gbc.gridy = 4;
+        configPanel.add(new JLabel("Java版本:"), gbc);
+
+        gbc.gridy = 5;
+        JComboBox<String> javaVersionComboBox = new JComboBox<>(new String[]{"Java 8", "Java 17"});
+        configPanel.add(javaVersionComboBox, gbc);
+
         // 為每個層級的每個對象創建類名輸入欄位
         Map<String, JTextField> objectClassFields = new HashMap<>();
-        int currentRow = 4;
+        int currentRow = 6;
 
         for (Map.Entry<Integer, Set<String>> entry : levelObjects.entrySet()) {
             int level = entry.getKey();
@@ -348,6 +365,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
             author = authorField.getText().trim();
             mainClassName = mainClassField.getText().trim();
+            isJava17 = javaVersionComboBox.getSelectedItem().equals("Java 17");
 
             // 清除舊的類名映射
             levelClassNamesMap.clear();

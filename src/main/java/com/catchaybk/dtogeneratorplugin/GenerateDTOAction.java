@@ -30,7 +30,7 @@ public class GenerateDTOAction extends AnAction {
             List<DtoField> dtoFields = dialog.getDtoFields();
             String mainClassName = dialog.getMainClassName();
             String author = dialog.getAuthor();
-            // 獲取類名映射
+            boolean isJava17 = dialog.isJava17();
             Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
 
             PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
@@ -40,7 +40,7 @@ public class GenerateDTOAction extends AnAction {
 
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 try {
-                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, levelClassNamesMap);
+                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, levelClassNamesMap, isJava17);
                 } catch (Exception ex) {
                     Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
                 }
@@ -50,13 +50,10 @@ public class GenerateDTOAction extends AnAction {
 
     private void generateDtoClasses(Project project, PsiDirectory directory,
                                     List<DtoField> allFields, String mainClassName,
-                                    String author, Map<Integer, Map<String, String>> levelClassNamesMap) {
-        // 解析DTO結構
+                                    String author, Map<Integer, Map<String, String>> levelClassNamesMap,
+                                    boolean isJava17) {
         DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName, levelClassNamesMap);
-
-        // 生成所有類
-        generateAllClasses(project, directory, mainStructure, author);
-
+        generateAllClasses(project, directory, mainStructure, author, isJava17);
     }
 
     private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
@@ -158,15 +155,13 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, String author) {
-        // 生成當前類
+                                    DtoStructure structure, String author, boolean isJava17) {
         String classContent = generateDtoClass(structure.getClassName(),
-                structure.getFields(), author);
+                structure.getFields(), author, isJava17);
         createOrUpdateJavaClass(project, directory, structure.getClassName(), classContent);
 
-        // 遞迴生成所有子類
         for (DtoStructure childStructure : structure.getChildStructures()) {
-            generateAllClasses(project, directory, childStructure, author);
+            generateAllClasses(project, directory, childStructure, author, isJava17);
         }
     }
 
@@ -196,7 +191,7 @@ public class GenerateDTOAction extends AnAction {
         }
     }
 
-    private String generateDtoClass(String className, List<DtoField> fields, String author) {
+    private String generateDtoClass(String className, List<DtoField> fields, String author, boolean isJava17) {
         StringBuilder sb = new StringBuilder();
         sb.append("package com.example.dto;\n\n");
 
@@ -205,19 +200,25 @@ public class GenerateDTOAction extends AnAction {
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
         imports.add("lombok.Data");
 
-        // 添加驗證相關的導入
-        imports.add("javax.validation.constraints.NotNull");
-        imports.add("javax.validation.constraints.NotBlank");
-        imports.add("javax.validation.constraints.Size");
+        // 根據 Java 版本添加驗證相關的導入
+        if (isJava17) {
+            imports.add("jakarta.validation.constraints.NotNull");
+            imports.add("jakarta.validation.constraints.NotBlank");
+            imports.add("jakarta.validation.constraints.Size");
+                } else {
+            imports.add("javax.validation.constraints.NotNull");
+            imports.add("javax.validation.constraints.NotBlank");
+            imports.add("javax.validation.constraints.Size");
+                }
 
         // 檢查是否需要List導入
         if (fields.stream().anyMatch(f -> f.isList())) {
             imports.add("java.util.List");
-        }
+            }
 
         // 添加所有導入
         List<String> sortedImports = new ArrayList<>(imports);
-        Collections.sort(sortedImports); // 排序導入語句
+        Collections.sort(sortedImports);
         for (String imp : sortedImports) {
             sb.append("import ").append(imp).append(";\n");
         }
@@ -228,7 +229,7 @@ public class GenerateDTOAction extends AnAction {
         sb.append(" * ").append(className).append("\n");
         if (author != null && !author.isEmpty()) {
             sb.append(" * @author ").append(author).append("\n");
-        }
+                    }
         sb.append(" */\n");
 
         sb.append("@Data\n");
@@ -249,17 +250,16 @@ public class GenerateDTOAction extends AnAction {
                     sb.append("    @NotNull\n");
                 }
             }
-
             // 添加大小限制註解
             if (field.getSize() != null && !field.getSize().isEmpty()) {
                 try {
                     int size = Integer.parseInt(field.getSize());
                     if (field.getDataType().toLowerCase().equals("string")) {
                         sb.append("    @Size(max = ").append(size).append(")\n");
-                    }
+        }
                 } catch (NumberFormatException ignored) {
                     // 如果size不是有效的數字，則忽略
-                }
+    }
             }
 
             // 添加 JsonProperty 註解
@@ -268,11 +268,11 @@ public class GenerateDTOAction extends AnAction {
             // 添加字段定義
             sb.append("    private ").append(field.getDataType())
                     .append(" ").append(field.getCamelCaseName()).append(";\n\n");
-        }
+    }
 
         sb.append("}\n");
         return sb.toString();
-    }
+}
 
     @Override
     public void update(@NotNull AnActionEvent e) {
