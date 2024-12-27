@@ -2,6 +2,7 @@ package com.catchaybk.dtogeneratorplugin;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
+import com.catchaybk.dtogeneratorplugin.ui.DtoConfigDialog;
 import com.catchaybk.dtogeneratorplugin.ui.DtoGeneratorDialog;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -32,7 +33,7 @@ public class GenerateDTOAction extends AnAction {
             String author = dialog.getAuthor();
             String msgId = dialog.getMsgId();
             boolean isJava17 = dialog.isJava17();
-            boolean isUpstream = dialog.isUpstream();
+            String messageDirectionComment = dialog.getMessageDirectionComment();
             Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
 
             PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
@@ -42,7 +43,7 @@ public class GenerateDTOAction extends AnAction {
 
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 try {
-                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, msgId, isUpstream, levelClassNamesMap, isJava17);
+                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, msgId, messageDirectionComment, levelClassNamesMap, isJava17);
                 } catch (Exception ex) {
                     Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
                 }
@@ -52,11 +53,11 @@ public class GenerateDTOAction extends AnAction {
 
     private void generateDtoClasses(Project project, PsiDirectory directory,
                                     List<DtoField> allFields, String mainClassName,
-                                    String author, String msgId, boolean isUpstream,
+                                    String author, String msgId, String messageDirectionComment,
                                     Map<Integer, Map<String, String>> levelClassNamesMap,
                                     boolean isJava17) {
         DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName, levelClassNamesMap);
-        generateAllClasses(project, directory, mainStructure, author, msgId, isUpstream, isJava17);
+        generateAllClasses(project, directory, mainStructure, author, msgId, messageDirectionComment, isJava17);
     }
 
     private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
@@ -139,7 +140,6 @@ public class GenerateDTOAction extends AnAction {
                     currentLevelStructures.put(field.getDataName(), childStructure);
                 }
 
-
                 // 添加字段到父結構
                 parentStructure.addField(field);
             }
@@ -166,13 +166,15 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, String author, String msgId, boolean isUpstream, boolean isJava17) {
+                                    DtoStructure structure, String author, String msgId,
+                                    String messageDirectionComment, boolean isJava17) {
         String classContent = generateDtoClass(structure.getClassName(),
-                structure.getFields(), author, msgId, isUpstream, isJava17);
+                structure.getFields(), author, msgId, messageDirectionComment, isJava17);
         createOrUpdateJavaClass(project, directory, structure.getClassName(), classContent);
 
         for (DtoStructure childStructure : structure.getChildStructures()) {
-            generateAllClasses(project, directory, childStructure, author, msgId, isUpstream, isJava17);
+            generateAllClasses(project, directory, childStructure, author, msgId,
+                    messageDirectionComment, isJava17);
         }
     }
 
@@ -202,7 +204,7 @@ public class GenerateDTOAction extends AnAction {
         }
     }
 
-    private String generateDtoClass(String className, List<DtoField> fields, String author, String msgId, boolean isUpstream, boolean isJava17) {
+    private String generateDtoClass(String className, List<DtoField> fields, String author, String msgId, String messageDirectionComment, boolean isJava17) {
         StringBuilder sb = new StringBuilder();
         sb.append("package com.example.dto;\n\n");
 
@@ -216,16 +218,16 @@ public class GenerateDTOAction extends AnAction {
             imports.add("jakarta.validation.constraints.NotNull");
             imports.add("jakarta.validation.constraints.NotBlank");
             imports.add("jakarta.validation.constraints.Size");
-                } else {
+        } else {
             imports.add("javax.validation.constraints.NotNull");
             imports.add("javax.validation.constraints.NotBlank");
             imports.add("javax.validation.constraints.Size");
-                }
+        }
 
         // 檢查是否需要List導入
         if (fields.stream().anyMatch(f -> f.isList())) {
             imports.add("java.util.List");
-            }
+        }
 
         // 添加所有導入
         List<String> sortedImports = new ArrayList<>(imports);
@@ -238,10 +240,11 @@ public class GenerateDTOAction extends AnAction {
         // 添加類註解
         sb.append("/**\n");
         sb.append(" * ").append(msgId).append("\n");
-        sb.append(" * ").append(isUpstream ? "上行/請求電文" : "下行/回應電文").append("\n");
+        // 根據電文方向添加說明
+        sb.append(" * ").append(messageDirectionComment).append("\n");
         if (author != null && !author.isEmpty()) {
             sb.append(" * @author ").append(author).append("\n");
-                    }
+        }
         sb.append(" */\n");
 
         sb.append("@Data\n");
@@ -268,10 +271,10 @@ public class GenerateDTOAction extends AnAction {
                     int size = Integer.parseInt(field.getSize());
                     if (field.getDataType().toLowerCase().equals("string")) {
                         sb.append("    @Size(max = ").append(size).append(")\n");
-        }
+                    }
                 } catch (NumberFormatException ignored) {
                     // 如果size不是有效的數字，則忽略
-    }
+                }
             }
 
             // 添加 JsonProperty 註解
@@ -280,11 +283,11 @@ public class GenerateDTOAction extends AnAction {
             // 添加字段定義
             sb.append("    private ").append(field.getDataType())
                     .append(" ").append(field.getCamelCaseName()).append(";\n\n");
-    }
+        }
 
         sb.append("}\n");
         return sb.toString();
-}
+    }
 
     @Override
     public void update(@NotNull AnActionEvent e) {

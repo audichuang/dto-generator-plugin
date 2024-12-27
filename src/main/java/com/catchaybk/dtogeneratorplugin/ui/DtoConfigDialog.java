@@ -132,8 +132,8 @@ public class DtoConfigDialog extends DialogWrapper {
         addFormRow(panel, "Java版本:", javaVersionComboBox, gbc, startRow + 3);
 
         // 電文方向選擇
-        messageDirectionComboBox = new JComboBox<>(new String[]{"上行", "下行"});
-        messageDirectionComboBox.setSelectedItem(isUpstream ? "上行/請求電文" : "下行/回應電文");
+        messageDirectionComboBox = new JComboBox<>(new String[]{"無", "上行", "下行"});
+        messageDirectionComboBox.setSelectedItem(getInitialMessageDirection());
         addFormRow(panel, "電文方向:", messageDirectionComboBox, gbc, startRow + 4);
 
         // 添加分隔符
@@ -185,10 +185,6 @@ public class DtoConfigDialog extends DialogWrapper {
         return "Java 17".equals(javaVersionComboBox.getSelectedItem());
     }
 
-    public boolean isUpstream() {
-        return "上行".equals(messageDirectionComboBox.getSelectedItem());
-    }
-
     public String getMainClassName() {
         return mainClassField.getText().trim();
     }
@@ -197,6 +193,35 @@ public class DtoConfigDialog extends DialogWrapper {
         JBTextField field = classNameFields.get(typeName);
         return field != null ? field.getText().trim() : "";
     }
+
+    private String getInitialMessageDirection() {
+        if (isUpstream) {
+            return "上行";
+        } else {
+            return "無"; // 默認選擇"無"
+        }
+    }
+
+    /**
+     * 獲取電文方向的註解文字
+     * @return 如果選擇"無"則返回空字符串,否則返回對應的電文方向說明
+     */
+    public String getMessageDirectionComment() {
+        String direction = getMessageDirection();
+        switch (direction) {
+            case "上行":
+                return "上行/請求電文";
+            case "下行":
+                return "下行/回應電文";
+            default:
+                return ""; // 當選擇"無"時返回空字符串
+        }
+    }
+
+    public String getMessageDirection() {
+        return (String) messageDirectionComboBox.getSelectedItem();
+    }
+
 
     @Override
     protected void doOKAction() {

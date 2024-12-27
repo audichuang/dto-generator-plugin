@@ -30,6 +30,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private boolean isJava17;
     private String msgId;
     private boolean isUpstream = true;
+    private DtoConfigDialog configDialog;
 
     public String getMsgId() {
         return msgId;
@@ -317,13 +318,12 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
 
         // 按層級收集自定義類型
-        Map<Integer, List<String>> levelTypesMap = new TreeMap<>(); // 使用TreeMap確保層級順序
+        Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             String dataName = tableModel.getValueAt(i, 1).toString();
             String dataType = tableModel.getValueAt(i, 2).toString();
             int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
 
-            // 如果是List或Object類型，添加到對應層級的集合中
             if (dataType.toLowerCase().contains("list") ||
                     dataType.toLowerCase().equals("object")) {
                 levelTypesMap
@@ -333,7 +333,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
 
         // 創建配置對話框
-        DtoConfigDialog configDialog = new DtoConfigDialog(
+        configDialog = new DtoConfigDialog( // 保存對話框引用
                 msgId,
                 author,
                 mainClassName,
@@ -348,7 +348,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
             author = configDialog.getAuthor();
             mainClassName = configDialog.getMainClassName();
             isJava17 = configDialog.isJava17();
-            isUpstream = configDialog.isUpstream();
 
             // 獲取所有自定義類型的類名配置
             levelClassNamesMap.clear();
@@ -367,6 +366,12 @@ public class DtoGeneratorDialog extends DialogWrapper {
             configurationDone = true;
         }
     }
+
+    // 添加這個新方法
+    public String getMessageDirectionComment() {
+        return configDialog != null ? configDialog.getMessageDirectionComment() : "";
+    }
+
 
     // 輔助方法：獲取類型的層級
     private int getTypeLevel(String typeName) {
