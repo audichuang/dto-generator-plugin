@@ -102,15 +102,22 @@ public class GenerateDTOAction extends AnAction {
                 // 如果是對象或列表類型，創建新的結構
                 if (field.isObject() || field.isList()) {
                     // 從配置中獲取類名
-                    Map<String, String> levelMap = levelClassNamesMap.get(level);
                     String configuredClassName = null;
+                    Map<String, String> levelMap = levelClassNamesMap.get(level);
                     if (levelMap != null) {
+                        // 根據字段名稱獲取配置的類名
                         configuredClassName = levelMap.get(field.getDataName());
                     }
 
                     // 如果沒有配置的類名，使用默認的
                     if (configuredClassName == null || configuredClassName.isEmpty()) {
-                        configuredClassName = field.getDataName() + "DTO";
+                        if (field.getDataName().equals("SupList")) {
+                            configuredClassName = levelClassNamesMap.get(1).get("SupList");
+                        } else if (field.getDataName().equals("SubSeqnoList")) {
+                            configuredClassName = levelClassNamesMap.get(2).get("SubSeqnoList");
+                        } else {
+                            configuredClassName = field.getDataName() + "DTO";
+                        }
                     }
 
                     // 設置子類名稱
@@ -128,6 +135,7 @@ public class GenerateDTOAction extends AnAction {
                     parentStructure.addChildStructure(childStructure, field);
                     currentLevelStructures.put(field.getDataName(), childStructure);
                 }
+
 
                 // 添加字段到父結構
                 parentStructure.addField(field);
