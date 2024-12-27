@@ -14,19 +14,22 @@ import java.util.List;
 public class DtoConfigDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
 
+    private JBTextField msgIdField; // 新增
     private JBTextField authorField;
     private JCheckBox rememberAuthorCheckBox;
     private JComboBox<String> javaVersionComboBox;
     private JBTextField mainClassField;
     private Map<String, JBTextField> classNameFields = new HashMap<>();
-    private Map<Integer, List<String>> levelTypesMap; // 按層級組織的類型
+    private Map<Integer, List<String>> levelTypesMap;
     private String initialAuthor;
     private String initialMainClassName;
+    private String initialMsgId; // 新增
     private boolean initialJava17;
 
-    public DtoConfigDialog(String author, String mainClassName, boolean isJava17,
+    public DtoConfigDialog(String msgId, String author, String mainClassName, boolean isJava17,
                          Map<Integer, List<String>> levelTypesMap) {
         super(true);
+        this.initialMsgId = msgId;
         this.initialAuthor = author;
         this.initialMainClassName = mainClassName;
         this.initialJava17 = isJava17;
@@ -53,7 +56,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
         // 基本配置部分
         addBasicConfigurations(mainPanel, gbc, row);
-        row += 4; // 基本配置佔用3行 + 1行分隔符
+        row += 5; // 基本配置佔用4行 + 1行分隔符
         // 主類配置
         mainClassField = new JBTextField(initialMainClassName);
         addFormRow(mainPanel, "主要類名:", mainClassField, gbc, row++);
@@ -103,23 +106,27 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     private void addBasicConfigurations(JPanel panel, GridBagConstraints gbc, int startRow) {
+        // MSGID配置
+        msgIdField = new JBTextField(initialMsgId);
+        addFormRow(panel, "MSGID:", msgIdField, gbc, startRow);
+
         // 作者配置
         authorField = new JBTextField(initialAuthor);
-        addFormRow(panel, "作者:", authorField, gbc, startRow);
+        addFormRow(panel, "作者:", authorField, gbc, startRow + 1);
 
         // 記住作者選項
         rememberAuthorCheckBox = new JCheckBox("記住作者", !initialAuthor.isEmpty());
         gbc.gridx = 1;
-        gbc.gridy = startRow + 1;
+        gbc.gridy = startRow + 2;
         panel.add(rememberAuthorCheckBox, gbc);
 
         // Java版本選擇
         javaVersionComboBox = new JComboBox<>(new String[]{"Java 8", "Java 17"});
         javaVersionComboBox.setSelectedItem(initialJava17 ? "Java 17" : "Java 8");
-        addFormRow(panel, "Java版本:", javaVersionComboBox, gbc, startRow + 2);
+        addFormRow(panel, "Java版本:", javaVersionComboBox, gbc, startRow + 3);
 
         // 添加分隔符
-        addSeparator(panel, gbc, startRow + 3);
+        addSeparator(panel, gbc, startRow + 4);
     }
 
     private void addFormRow(JPanel panel, String labelText, JComponent field,
@@ -151,21 +158,24 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.gridwidth = 1;
     }
 
-    // Getter方法保持不變
+    public String getMsgId() {
+        return msgIdField.getText().trim();
+    }
     public String getAuthor() {
         return authorField.getText().trim();
     }
+
     public boolean isRememberAuthor() {
         return rememberAuthorCheckBox.isSelected();
-        }
+    }
 
     public boolean isJava17() {
         return "Java 17".equals(javaVersionComboBox.getSelectedItem());
-    }
+}
 
     public String getMainClassName() {
         return mainClassField.getText().trim();
-}
+    }
 
     public String getClassName(String typeName) {
         JBTextField field = classNameFields.get(typeName);

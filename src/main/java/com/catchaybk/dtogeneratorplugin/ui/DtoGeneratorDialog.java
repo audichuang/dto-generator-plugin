@@ -28,6 +28,14 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
     private String mainClassName = "MainDTO"; // 添加字段
     private boolean isJava17;
+    private String msgId;
+
+    public String getMsgId() {
+        return msgId;
+    }
+     public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
 
     public boolean isJava17() {
         return isJava17;
@@ -324,6 +332,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
         // 創建配置對話框
         DtoConfigDialog configDialog = new DtoConfigDialog(
+                msgId,
                 author,
                 mainClassName,
                 isJava17,
@@ -332,6 +341,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
         if (configDialog.showAndGet()) {
             // 獲取基本配置
+            msgId = configDialog.getMsgId();
             author = configDialog.getAuthor();
             mainClassName = configDialog.getMainClassName();
             isJava17 = configDialog.isJava17();
