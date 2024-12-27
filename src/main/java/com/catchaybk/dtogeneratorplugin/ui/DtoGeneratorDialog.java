@@ -324,8 +324,11 @@ public class DtoGeneratorDialog extends DialogWrapper {
             String dataType = tableModel.getValueAt(i, 2).toString();
             int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
 
-            if (dataType.toLowerCase().contains("list") ||
-                    dataType.toLowerCase().equals("object")) {
+            // 創建一個臨時的 DtoField 來使用其類型判斷邏輯
+            DtoField tempField = new DtoField(level, dataName, dataType, "", true, "");
+
+            // 只有當字段是對象類型或是非基本類型的列表時才需要配置
+            if (tempField.isObject()) {
                 levelTypesMap
                         .computeIfAbsent(level, k -> new ArrayList<>())
                         .add(dataName);
@@ -333,7 +336,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
 
         // 創建配置對話框
-        configDialog = new DtoConfigDialog( // 保存對話框引用
+        configDialog = new DtoConfigDialog(
                 msgId,
                 author,
                 mainClassName,

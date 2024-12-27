@@ -3,9 +3,7 @@ package com.catchaybk.dtogeneratorplugin.model;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @Getter
 @Setter
@@ -31,39 +29,65 @@ public class DtoField {
 
     private boolean isPrimitiveType(String type) {
         if (type == null) return false;
-        String lowerType = type.toLowerCase().trim();
 
-        // 明確檢查是否為對象或列表類型
-        if (lowerType.equals("object") ||
-                lowerType.startsWith("list") ||
-                lowerType.contains("list<")) {
-            return false;
+        // 處理泛型類型，例如 List<String>
+        if (type.toLowerCase().trim().startsWith("list<")) {
+            // 提取泛型參數，但保持原始大小寫
+            String genericType = type.substring(type.indexOf('<') + 1, type.lastIndexOf('>')).trim();
+            return isPrimitiveOrWrapperType(genericType);
         }
 
-        Set<String> primitiveTypes = new HashSet<>(Arrays.asList(
-                "string", "int", "integer", "long", "double", "float",
-                "boolean", "date", "datetime", "bigdecimal", "char",
-                "byte", "short", "void", "decimal"
+        return isPrimitiveOrWrapperType(type);
+    }
+
+
+    public boolean isPrimitiveOrWrapperType(String type) {
+        // 創建一個不區分大小寫的比較集合
+        Set<String> primitiveAndWrapperTypes = new HashSet<>(Arrays.asList(
+                "string", "String",
+                "int", "integer", "Integer",
+                "long", "Long",
+                "double", "Double",
+                "float", "Float",
+                "boolean", "Boolean",
+                "date", "Date",
+                "datetime", "DateTime",
+                "bigdecimal", "BigDecimal",
+                "char", "Character",
+                "byte", "Byte",
+                "short", "Short",
+                "void", "Void",
+                "decimal", "Decimal",
+                "number", "Number",
+                "LocalDate",
+                "LocalDateTime"
         ));
 
-        return primitiveTypes.contains(lowerType);
+        // 使用原始類型進行比較，而不是轉換為小寫
+        return primitiveAndWrapperTypes.contains(type);
     }
+
 
     public boolean isList() {
         if (dataType == null) return false;
-        String lowerType = dataType.toLowerCase().trim();
-        return lowerType.equals("list<object>") ||
-                lowerType.equals("list") ||
-                lowerType.contains("list<") ||
-                lowerType.startsWith("list");
+        // 保持原始大小寫檢查
+        return dataType.trim().startsWith("List<") ||
+                dataType.trim().equals("List");
     }
+
 
     public boolean isObject() {
         if (dataType == null) return false;
-        String lowerType = dataType.toLowerCase().trim();
-        return lowerType.equals("object") ||
-                (!isPrimitiveType(lowerType) && !isList());
+
+        // 處理泛型類型，保持原始大小寫
+        if (dataType.trim().startsWith("List<")) {
+            String genericType = dataType.substring(dataType.indexOf('<') + 1, dataType.lastIndexOf('>')).trim();
+            return !isPrimitiveOrWrapperType(genericType);
+        }
+
+        return dataType.equals("Object") || (!isPrimitiveType(dataType) && !isList());
     }
+
 
     public String getCamelCaseName() {
         if (dataName == null || dataName.isEmpty()) {
@@ -76,4 +100,55 @@ public class DtoField {
     public String getOriginalName() {
         return dataName;
     }
+
+    public String getFormattedDataType() {
+        if (dataType == null) return "";
+
+        // 如果是 List 類型，需要特別處理
+        if (dataType.trim().startsWith("List<")) {
+            int start = dataType.indexOf('<');
+            int end = dataType.lastIndexOf('>');
+            if (start >= 0 && end >= 0) {
+                String genericType = dataType.substring(start + 1, end).trim();
+                // 確保泛型參數使用正確的大小寫
+                String formattedGenericType = formatTypeName(genericType);
+                return "List<" + formattedGenericType + ">";
+            }
+        }
+
+        // 非 List 類型，直接返回格式化後的類型名
+        return formatTypeName(dataType.trim());
+    }
+
+    private String formatTypeName(String typeName) {
+        // 基本類型的映射（保持正確的大小寫）
+        Map<String, String> typeMapping = new HashMap<>();
+        typeMapping.put("string", "String");
+        typeMapping.put("integer", "Integer");
+        typeMapping.put("long", "Long");
+        typeMapping.put("double", "Double");
+        typeMapping.put("float", "Float");
+        typeMapping.put("boolean", "Boolean");
+        typeMapping.put("date", "Date");
+        typeMapping.put("datetime", "DateTime");
+        typeMapping.put("bigdecimal", "BigDecimal");
+        typeMapping.put("char", "Character");
+        typeMapping.put("byte", "Byte");
+        typeMapping.put("short", "Short");
+        typeMapping.put("void", "Void");
+        typeMapping.put("decimal", "Decimal");
+        typeMapping.put("number", "Number");
+        typeMapping.put("localdate", "LocalDate");
+        typeMapping.put("localdatetime", "LocalDateTime");
+
+        // 檢查是否有對應的標準格式
+        String lowercaseType = typeName.toLowerCase();
+        if (typeMapping.containsKey(lowercaseType)) {
+            return typeMapping.get(lowercaseType);
+        }
+
+        // 如果不是標準類型，保持原樣
+        return typeName;
+    }
+
 }

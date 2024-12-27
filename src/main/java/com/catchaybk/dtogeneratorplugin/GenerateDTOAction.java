@@ -104,12 +104,27 @@ public class GenerateDTOAction extends AnAction {
                 }
 
                 // 如果是對象或列表類型，創建新的結構
+                // 在 analyzeDtoStructure 方法中修改處理字段類型的部分
                 if (field.isObject() || field.isList()) {
+                    // 如果是列表類型，檢查是否需要創建新的結構
+                    if (field.isList()) {
+                        String dataType = field.getDataType().toLowerCase();
+                        // 檢查是否是基本型別的列表
+                        if (dataType.startsWith("list<")) {
+                            String genericType = dataType.substring(5, dataType.length() - 1).trim();
+                            if (field.isPrimitiveOrWrapperType(genericType)) {
+                                // 如果是基本型別的列表，直接使用該類型，不創建新結構
+                                field.setDataType("List<" + genericType + ">");
+                                parentStructure.addField(field);
+                                continue;
+                            }
+                        }
+                    }
+
                     // 從配置中獲取類名
                     String configuredClassName = null;
                     Map<String, String> levelMap = levelClassNamesMap.get(level);
                     if (levelMap != null) {
-                        // 根據字段名稱獲取配置的類名
                         configuredClassName = levelMap.get(field.getDataName());
                     }
 
@@ -281,7 +296,7 @@ public class GenerateDTOAction extends AnAction {
             sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
 
             // 添加字段定義
-            sb.append("    private ").append(field.getDataType())
+            sb.append("    private ").append(field.getFormattedDataType())
                     .append(" ").append(field.getCamelCaseName()).append(";\n\n");
         }
 
