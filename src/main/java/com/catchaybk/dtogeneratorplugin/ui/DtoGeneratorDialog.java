@@ -2,15 +2,12 @@ package com.catchaybk.dtogeneratorplugin.ui;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
-import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.TextFieldWithBrowseButton;
-import com.intellij.psi.PsiPackage;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import org.jetbrains.annotations.Nullable;
@@ -36,8 +33,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private String msgId;
     private boolean isUpstream = true;
     private DtoConfigDialog configDialog;
-    private TextFieldWithBrowseButton packageChooser;
-    private String targetPackage;
     private Project project;
 
 
@@ -61,7 +56,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
         super(true);
         this.project = project;
         initializeTable();
-        targetPackage = "dto"; // 設置默認包名
         init();
         setTitle("DTO Generator");
         loadRememberedAuthor();
@@ -69,22 +63,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
 
     public String getTargetPackage() {
-        String packageName = packageChooser.getText().trim();
-        if (packageName.isEmpty()) {
-            return "dto";
-        }
-
-        // 移除路徑中可能存在的 src/main/java 部分
-        packageName = packageName.replaceAll(".*?src/main/java/", "")
-                .replace('/', '.')
-                .replace('\\', '.');
-
-        // 移除開頭的點號（如果有）
-        while (packageName.startsWith(".")) {
-            packageName = packageName.substring(1);
-        }
-
-        return packageName;
+        return configDialog != null ? configDialog.getTargetPackage() : "dto";
     }
 
 
@@ -101,19 +80,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
         JPanel dialogPanel = new JPanel(new BorderLayout());
-
-        // 創建頂部面板
-        JPanel topPanel = new JPanel(new BorderLayout());
-        JPanel packagePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        packagePanel.add(new JLabel("Target Package:"));
-
-        // 初始化包選擇器
-        initializePackageChooser();
-        packagePanel.add(packageChooser);
-
-        topPanel.add(packagePanel, BorderLayout.NORTH);
-        dialogPanel.add(topPanel, BorderLayout.NORTH);
-
 
         // 原有的表格部分
         JBScrollPane scrollPane = new JBScrollPane(table);
@@ -142,23 +108,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
         dialogPanel.setPreferredSize(new Dimension(800, 400));
         return dialogPanel;
-    }
-
-    private void initializePackageChooser() {
-        packageChooser = new TextFieldWithBrowseButton();
-        packageChooser.setPreferredSize(new Dimension(300, 30));
-        packageChooser.setText("dto"); // 設置默認值
-
-        // 添加瀏覽按鈕的點擊事件
-        packageChooser.addActionListener(e -> {
-            PackageChooserDialog packageChooser = new PackageChooserDialog("Choose Target Package", project);
-            packageChooser.show();
-
-            PsiPackage selectedPackage = packageChooser.getSelectedPackage();
-            if (selectedPackage != null) {
-                this.packageChooser.setText(selectedPackage.getQualifiedName());
-            }
-        });
     }
 
 
@@ -413,8 +362,8 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 isJava17,
                 isUpstream,
                 levelTypesMap,
-                project,          // 添加 project 參數
-                getTargetPackage() // 添加當前的包路徑
+                project,
+                "dto"
         );
 
         if (configDialog.showAndGet()) {
@@ -423,10 +372,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
             author = configDialog.getAuthor();
             mainClassName = configDialog.getMainClassName();
             isJava17 = configDialog.isJava17();
-
-            // 更新目標包路徑
-            targetPackage = configDialog.getTargetPackage();
-            packageChooser.setText(targetPackage);
 
             // 獲取所有自定義類型的類名配置
             levelClassNamesMap.clear();
