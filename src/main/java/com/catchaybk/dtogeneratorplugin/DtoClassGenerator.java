@@ -1,6 +1,7 @@
 package com.catchaybk.dtogeneratorplugin;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.ui.ValidationMessageSettingDialog;
 
 import java.util.*;
 
@@ -111,26 +112,32 @@ public class DtoClassGenerator {
 
     private void generateFieldAnnotations(StringBuilder sb, DtoField field) {
         if (field.isRequired()) {
-            // 使用簡短的註解名稱
             if (field.getDataType().toLowerCase().contains("string")) {
-                sb.append("    @NotBlank\n");
+                sb.append("    @NotBlank(message = \"")
+                        .append(ValidationMessageSettingDialog.getNotBlankMessage(
+                                field.getCamelCaseName(), field.getComments()))
+                        .append("\")\n");
             } else {
-                sb.append("    @NotNull\n");
+                sb.append("    @NotNull(message = \"")
+                        .append(ValidationMessageSettingDialog.getNotNullMessage(
+                                field.getCamelCaseName(), field.getComments()))
+                        .append("\")\n");
             }
         }
 
-        // 對於對象類型或包含對象的List
         if ((field.isObject() && !field.isList()) ||
                 (field.isList() && !field.isPrimitiveOrWrapperType(field.getDataType()))) {
             sb.append("    @Valid\n");
         }
 
-        // JsonProperty註解
         sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
 
-        // Size註解
         if (field.getDataType().toLowerCase().contains("string") && !field.getSize().isEmpty()) {
-            sb.append("    @Size(max = ").append(field.getSize()).append(")\n");
+            sb.append("    @Size(max = ").append(field.getSize())
+                    .append(", message = \"")
+                    .append(ValidationMessageSettingDialog.getSizeMessage(
+                            field.getCamelCaseName(), field.getComments(), field.getSize()))
+                    .append("\")\n");
         }
     }
 

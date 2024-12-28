@@ -82,6 +82,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
     }
 
     private void addButtons(JPanel panel) {
+        createAndAddButton(panel, "Setting", e -> showSettingDialog());
         createAndAddButton(panel, "Add Row", e -> tableModel.addEmptyRow());
         createAndAddButton(panel, "Remove Row", e -> removeSelectedRows());
         createAndAddButton(panel, "Paste", e -> handlePaste());
@@ -226,7 +227,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 String basePackage = javaFile.getPackageName();
                 VirtualFile baseDir = currentFile.getParent();
 
-                // 檢查是否存在 dto 子目錄
+                // ��查是否存在 dto 子目錄
                 VirtualFile dtoDir = baseDir.findChild("dto");
                 if (dtoDir != null && dtoDir.isDirectory()) {
                     // 如果存在 dto 目錄，返回完整的 dto 包路徑
@@ -322,5 +323,10 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     public String getTargetPackage() {
         return configDialog != null ? configDialog.getTargetPackage() : "dto";
+    }
+
+    private void showSettingDialog() {
+        ValidationMessageSettingDialog dialog = new ValidationMessageSettingDialog();
+        dialog.show();
     }
 }
