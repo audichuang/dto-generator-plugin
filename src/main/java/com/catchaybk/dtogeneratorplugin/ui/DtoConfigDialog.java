@@ -20,6 +20,7 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.ItemEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 /**
  * DTO配置對話框
  * 用於配置DTO生成的相關參數，包括：
- * 1. 基��配置（包路徑、作者、Java）
+ * 1. 基本配置（包路徑、作者、Java）
  * 2. 電文相關配置（MSGID、電文方向等）
  * 3. 類名配置（主類名和各層級類名）
  */
@@ -38,10 +39,10 @@ public class DtoConfigDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
     private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
     private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
-    private static final int LABEL_WIDTH = 100;
+    private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
-    private static final int SCROLL_WIDTH = 450;
-    private static final int SCROLL_HEIGHT = 400;
+    private static final int SCROLL_WIDTH = 600;
+    private static final int SCROLL_HEIGHT = 600;
 
     // UI組件
     private final UIComponents ui;
@@ -87,7 +88,7 @@ public class DtoConfigDialog extends DialogWrapper {
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
         // 創建基本配置板
@@ -100,7 +101,7 @@ public class DtoConfigDialog extends DialogWrapper {
                 ui.javaVersionBox,
                 ui.mainClassField,
                 ui.jsonPropertyStyleCombo,
-                ui.jsonAliasScrollPane
+                ui.jsonAliasPanel
         };
 
         String[] labels = {
@@ -120,13 +121,20 @@ public class DtoConfigDialog extends DialogWrapper {
 
         // 初始化電文ID面板
         addFormRow(ui.tranIdPanel, "電文ID:", ui.tranIdField, createDefaultConstraints(), 0);
-        ui.tranIdPanel.setVisible(false); // 初始隱藏
-
-        mainPanel.add(basicPanel, BorderLayout.NORTH);
+        ui.tranIdPanel.setVisible(false);
 
         // 創建類型配置面板
         JPanel configPanel = DtoConfigPanelFactory.createTypeConfigPanel(levelTypesMap, classNameFields);
-        JBScrollPane scrollPane = new JBScrollPane(configPanel);
+
+        // 使用 BoxLayout 來控制垂直布局
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.add(basicPanel);
+        contentPanel.add(Box.createVerticalStrut(10)); // 添加固定間距
+        contentPanel.add(configPanel);
+
+        // 將整個內容放入滾動面板
+        JBScrollPane scrollPane = new JBScrollPane(contentPanel);
         scrollPane.setPreferredSize(new Dimension(SCROLL_WIDTH, SCROLL_HEIGHT));
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -232,7 +240,7 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         if (field instanceof JTextField) {
-            field.setPreferredSize(new Dimension(300, FIELD_HEIGHT));
+            field.setPreferredSize(new Dimension(400, FIELD_HEIGHT));
         }
         panel.add(field, gbc);
     }
@@ -420,10 +428,12 @@ public class DtoConfigDialog extends DialogWrapper {
 
         if (!showTranId) {
             ui.tranIdField.setText("");
+            updateAllClassNames(); // 當隱藏時也更新類名
         } else if (ui.tranIdField.getText().isEmpty() && ui.msgIdField.getText() != null) {
             String msgId = ui.msgIdField.getText().trim();
             String tranId = extractTranId(msgId);
             ui.tranIdField.setText(tranId);
+            updateAllClassNames(); // 當設置 tranId 時更新類名
         }
 
         ui.tranIdPanel.revalidate();
@@ -438,7 +448,7 @@ public class DtoConfigDialog extends DialogWrapper {
      * "XXX-YYY 說明" -> "YYY"
      *
      * @param msgId 原始的MSGID
-     * @return 提取出的電文ID
+     * @return 提取的電文ID
      */
     private String extractTranId(String msgId) {
         if (msgId == null || msgId.isEmpty()) {
@@ -455,7 +465,7 @@ public class DtoConfigDialog extends DialogWrapper {
             return msgId.substring(startIndex, endIndex);
         }
 
-        // 如果不包含連字符，取開頭到第個空格的部分
+        // 如果不包含連字符，取開頭到第個空格的���分
         int spaceIndex = msgId.indexOf(" ");
         if (spaceIndex != -1) {
             return msgId.substring(0, spaceIndex);
@@ -544,7 +554,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * UI組件類
-     * 集中管理所有UI組件，提高代碼的組織性和可維護性
+     * 集中管理所有UI組件��提高代碼的組織性和可維護性
      */
     private class UIComponents {
         final TextFieldWithBrowseButton packageChooser;
@@ -559,6 +569,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final JComboBox<String> jsonPropertyStyleCombo;
         final JList<String> jsonAliasStyleList;
         final JScrollPane jsonAliasScrollPane;
+        final JPanel jsonAliasPanel;
 
         UIComponents() {
             packageChooser = createPackageChooser();
@@ -571,14 +582,24 @@ public class DtoConfigDialog extends DialogWrapper {
             javaVersionBox = createJavaVersionBox();
             mainClassField = createTextField(config.mainClassName);
             jsonPropertyStyleCombo = new JComboBox<>(JSON_STYLES);
+            jsonPropertyStyleCombo.addActionListener(e -> updateJsonAliasList());
+
             jsonAliasStyleList = new JList<>(JSON_ALIAS_OPTIONS);
             jsonAliasStyleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             jsonAliasStyleList.setVisibleRowCount(4);
+            jsonAliasStyleList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
             jsonAliasScrollPane = new JBScrollPane(jsonAliasStyleList);
-            jsonAliasScrollPane.setPreferredSize(new Dimension(300, 100));
+            jsonAliasScrollPane.setPreferredSize(new Dimension(400, 100));
+
+            jsonAliasPanel = new JPanel(new BorderLayout());
+            JLabel tipLabel = new JLabel("<html><font color='gray'>提示: 按住 Ctrl 可以選擇多個格式</font></html>");
+            tipLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 0));
+            jsonAliasPanel.add(tipLabel, BorderLayout.NORTH);
+            jsonAliasPanel.add(jsonAliasScrollPane, BorderLayout.CENTER);
 
             jsonPropertyStyleCombo.setSelectedItem("原始格式");
-            jsonAliasStyleList.setSelectedIndex(0);
+            updateJsonAliasList();
         }
 
         private TextFieldWithBrowseButton createPackageChooser() {
@@ -592,10 +613,13 @@ public class DtoConfigDialog extends DialogWrapper {
         private JComboBox<String> createDirectionComboBox() {
             JComboBox<String> box = new JComboBox<>(MESSAGE_DIRECTIONS);
             box.setSelectedItem("無");
+
+            // 使用 ActionListener
             box.addActionListener(e -> {
                 updateTranIdVisibility();
-                updateAllClassNames();
+                updateAllClassNames(); // 直接調用，不需要 invokeLater
             });
+
             return box;
         }
 
@@ -603,6 +627,21 @@ public class DtoConfigDialog extends DialogWrapper {
             JComboBox<String> box = new JComboBox<>(JAVA_VERSIONS);
             box.setSelectedItem(config.isJava17 ? "Java 17" : "Java 8");
             return box;
+        }
+
+        private void updateJsonAliasList() {
+            String selectedProperty = ((String) jsonPropertyStyleCombo.getSelectedItem()).split(" ")[0];
+
+            DefaultListModel<String> model = new DefaultListModel<>();
+            for (String option : JSON_ALIAS_OPTIONS) {
+                String format = option.split(" ")[0];
+                if (!format.equals(selectedProperty)) {
+                    model.addElement(option);
+                }
+            }
+
+            jsonAliasStyleList.setModel(model);
+            jsonAliasStyleList.clearSelection();
         }
     }
 
@@ -617,7 +656,7 @@ public class DtoConfigDialog extends DialogWrapper {
     public List<String> getJsonAliasStyles() {
         return ui.jsonAliasStyleList.getSelectedValuesList().stream()
                 .map(style -> style.split(" ")[0])
-                .filter(style -> !style.equals("無"))
+                .filter(style -> !style.equals("��"))
                 .collect(Collectors.toList());
     }
 }
