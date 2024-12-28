@@ -14,10 +14,13 @@ public class UserConfig {
     public final String messageDirectionComment;
     public final Map<Integer, Map<String, String>> levelClassNamesMap;
     public final String targetPackage;
+    public final String jsonPropertyStyle;
+    public final String jsonAliasStyle;
 
     public UserConfig(List<DtoField> dtoFields, String mainClassName, String author,
                       String msgId, boolean isJava17, String messageDirectionComment,
-                      Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage) {
+                      Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage,
+                      String jsonPropertyStyle, String jsonAliasStyle) {
         this.dtoFields = dtoFields;
         this.mainClassName = mainClassName;
         this.author = author;
@@ -26,5 +29,7 @@ public class UserConfig {
         this.messageDirectionComment = messageDirectionComment;
         this.levelClassNamesMap = levelClassNamesMap;
         this.targetPackage = targetPackage;
+        this.jsonPropertyStyle = jsonPropertyStyle;
+        this.jsonAliasStyle = jsonAliasStyle;
     }
 }

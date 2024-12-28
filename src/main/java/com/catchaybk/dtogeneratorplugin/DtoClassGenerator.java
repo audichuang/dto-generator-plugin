@@ -46,6 +46,11 @@ public class DtoClassGenerator {
     private Set<String> collectImports(List<DtoField> fields) {
         Set<String> imports = new HashSet<>();
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
+
+        if (!config.jsonAliasStyle.equals("無")) {
+            imports.add("com.fasterxml.jackson.annotation.JsonAlias");
+        }
+
         imports.add("lombok.Data");
 
         String validationPackage = config.isJava17 ? "jakarta.validation" : "javax.validation";
@@ -136,7 +141,17 @@ public class DtoClassGenerator {
             sb.append("    @Valid\n");
         }
 
-        sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
+        // JsonProperty 註解
+        String jsonPropertyName = field.formatName(config.jsonPropertyStyle);
+        sb.append("    @JsonProperty(\"").append(jsonPropertyName).append("\")\n");
+
+        // JsonAlias 註解（如果需要）
+        if (!config.jsonAliasStyle.equals("無")) {
+            String jsonAliasName = field.formatName(config.jsonAliasStyle);
+            if (!jsonAliasName.equals(jsonPropertyName)) {
+                sb.append("    @JsonAlias(\"").append(jsonAliasName).append("\")\n");
+            }
+        }
 
         String lowerType = field.getDataType().toLowerCase();
         // 對於 decimal 和 bigdecimal 類型且有 size 的字段

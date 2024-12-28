@@ -1,5 +1,6 @@
 package com.catchaybk.dtogeneratorplugin.ui;
 
+import com.catchaybk.dtogeneratorplugin.UserConfig;
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.ui.model.DtoTableModel;
 import com.intellij.ide.util.PropertiesComponent;
@@ -357,5 +358,19 @@ public class DtoGeneratorDialog extends DialogWrapper {
     private void showSettingDialog() {
         ValidationMessageSettingDialog dialog = new ValidationMessageSettingDialog();
         dialog.show();
+    }
+
+    public UserConfig getUserConfig() {
+        return new UserConfig(
+                getDtoFields(),
+                getMainClassName(),
+                getAuthor(),
+                getMsgId(),
+                isJava17(),
+                getMessageDirectionComment(),
+                getLevelClassNamesMap(),
+                getTargetPackage(),
+                configDialog != null ? configDialog.getJsonPropertyStyle().split(" ")[0] : "原始格式",
+                configDialog != null ? configDialog.getJsonAliasStyle().split(" ")[0] : "無");
     }
 }

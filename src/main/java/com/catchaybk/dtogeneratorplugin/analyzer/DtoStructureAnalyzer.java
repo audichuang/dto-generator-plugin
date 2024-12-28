@@ -68,7 +68,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void handleSubSeqnoListTransition(Map<Integer, List<DtoStructure>> structures,
-            List<DtoField> supListFields, String currentParentField) {
+                                              List<DtoField> supListFields, String currentParentField) {
         if (!supListFields.isEmpty()) {
             addStructure(structures, 1, currentParentField, new ArrayList<>(supListFields));
             supListFields.clear();
@@ -76,7 +76,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void addFieldToAppropriateList(DtoField field, boolean inSubSeqnoList, boolean inSupList,
-            List<DtoField> mainFields, List<DtoField> supListFields, List<DtoField> subSeqnoListFields) {
+                                           List<DtoField> mainFields, List<DtoField> supListFields, List<DtoField> subSeqnoListFields) {
         if (inSubSeqnoList) {
             subSeqnoListFields.add(field);
         } else if (inSupList) {
@@ -87,7 +87,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void finalizeStructures(Map<Integer, List<DtoStructure>> structures,
-            List<DtoField> mainFields, List<DtoField> supListFields, List<DtoField> subSeqnoListFields) {
+                                    List<DtoField> mainFields, List<DtoField> supListFields, List<DtoField> subSeqnoListFields) {
         if (!mainFields.isEmpty()) {
             addStructure(structures, 0, null, mainFields);
         }
@@ -100,7 +100,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void addStructure(Map<Integer, List<DtoStructure>> structures,
-            int level, String parentField, List<DtoField> fields) {
+                              int level, String parentField, List<DtoField> fields) {
         structures.computeIfAbsent(level, k -> new ArrayList<>())
                 .add(new DtoStructure(level, parentField, new ArrayList<>(fields)));
     }

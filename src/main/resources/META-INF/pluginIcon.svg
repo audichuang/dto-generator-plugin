@@ -17,33 +17,40 @@
         <!-- 裝飾性圓環 -->
         <circle r="30" stroke="url(#ringGradient)" stroke-width="0.5" fill="none">
             <animate attributeName="stroke-width" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
-            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite"/>
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s"
+                              repeatCount="indefinite"/>
         </circle>
 
         <!-- 對稱曲線裝飾 -->
         <g>
-            <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient1)" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient1)" stroke-width="1.5" fill="none"
+                  stroke-linecap="round">
                 <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
             </path>
-            <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient1)" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient1)" stroke-width="1.5" fill="none"
+                  stroke-linecap="round">
                 <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
             </path>
 
             <!-- 旋轉複製的曲線組 -->
             <g transform="rotate(120)">
-                <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient2)" stroke-width="1.5" fill="none" stroke-linecap="round">
+                <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient2)" stroke-width="1.5" fill="none"
+                      stroke-linecap="round">
                     <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
                 </path>
-                <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient2)" stroke-width="1.5" fill="none" stroke-linecap="round">
+                <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient2)" stroke-width="1.5" fill="none"
+                      stroke-linecap="round">
                     <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
                 </path>
             </g>
 
             <g transform="rotate(240)">
-                <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient3)" stroke-width="1.5" fill="none" stroke-linecap="round">
+                <path d="M0,-35 C10,-25 10,-15 0,-5" stroke="url(#lineGradient3)" stroke-width="1.5" fill="none"
+                      stroke-linecap="round">
                     <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
                 </path>
-                <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient3)" stroke-width="1.5" fill="none" stroke-linecap="round">
+                <path d="M0,35 C-10,25 -10,15 0,5" stroke="url(#lineGradient3)" stroke-width="1.5" fill="none"
+                      stroke-linecap="round">
                     <animate attributeName="stroke-width" values="1.5;2;1.5" dur="2s" repeatCount="indefinite"/>
                 </path>
             </g>

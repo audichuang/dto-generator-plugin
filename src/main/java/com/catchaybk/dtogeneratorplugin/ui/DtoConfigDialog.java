@@ -27,7 +27,7 @@ import java.util.Map;
 /**
  * DTO配置對話框
  * 用於配置DTO生成的相關參數，包括：
- * 1. 基本配置（包路徑、作者、Java版本等）
+ * 1. 基本配置（包路徑、作者、Java）
  * 2. 電文相關配置（MSGID、電文方向等）
  * 3. 類名配置（主類名和各層級類名）
  */
@@ -35,8 +35,8 @@ public class DtoConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
-    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
+    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
+    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 100;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 450;
@@ -51,9 +51,28 @@ public class DtoConfigDialog extends DialogWrapper {
     private final Map<String, JBTextField> classNameFields = new HashMap<>();
     private final Map<Integer, List<String>> levelTypesMap;
 
+    private static final String[] JSON_STYLES = {
+            "原始格式 (studentName -> studentName)",
+            "全大寫 (studentName -> STUDENTNAME)",
+            "全小寫 (studentName -> studentname)",
+            "大寫底線 (studentName -> STUDENT_NAME)",
+            "小駝峰 (StudentName -> studentName)",
+            "大駝峰 (studentName -> StudentName)"
+    };
+
+    private static final String[] JSON_ALIAS_OPTIONS = {
+            "無 (不添加 JsonAlias)",
+            "原始格式 (studentName -> studentName)",
+            "全大寫 (studentName -> STUDENTNAME)",
+            "全小寫 (studentName -> studentname)",
+            "大寫底線 (studentName -> STUDENT_NAME)",
+            "小駝峰 (StudentName -> studentName)",
+            "大駝峰 (studentName -> StudentName)"
+    };
+
     public DtoConfigDialog(String msgId, String author, String mainClassName,
-                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-                           Project project, String initialPackage) {
+            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+            Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -70,7 +89,7 @@ public class DtoConfigDialog extends DialogWrapper {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
-        // 使用工廠類創建面板
+        // 創建基本配置板
         JComponent[] components = {
                 ui.packageChooser,
                 ui.msgIdField,
@@ -78,7 +97,9 @@ public class DtoConfigDialog extends DialogWrapper {
                 ui.tranIdPanel,
                 ui.authorField,
                 ui.javaVersionBox,
-                ui.mainClassField
+                ui.mainClassField,
+                ui.jsonPropertyStyleCombo,
+                ui.jsonAliasStyleCombo
         };
 
         String[] labels = {
@@ -88,7 +109,9 @@ public class DtoConfigDialog extends DialogWrapper {
                 "",
                 "作者:",
                 "Java版本:",
-                "主類名:"
+                "主類名:",
+                "JSON Property 格式:",
+                "JSON Alias 格式:"
         };
 
         // 創建基本配置面板
@@ -122,7 +145,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                   boolean isJava17, boolean isUpstream, String initialPackage) {
+                boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;
@@ -431,7 +454,7 @@ public class DtoConfigDialog extends DialogWrapper {
             return msgId.substring(startIndex, endIndex);
         }
 
-        // 如果不包含連字符，取開頭到第一個空格的部分
+        // 如果不包含連字符，取開頭到第個空格的部分
         int spaceIndex = msgId.indexOf(" ");
         if (spaceIndex != -1) {
             return msgId.substring(0, spaceIndex);
@@ -442,7 +465,7 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     /**
-     * 獲取有效的ID
+     * ���取有效的ID
      *
      * @return 根據當前電文方向返回應的ID
      */
@@ -532,6 +555,8 @@ public class DtoConfigDialog extends DialogWrapper {
         final JCheckBox rememberAuthorBox;
         final JComboBox<String> javaVersionBox;
         final JBTextField mainClassField;
+        final JComboBox<String> jsonPropertyStyleCombo;
+        final JComboBox<String> jsonAliasStyleCombo;
 
         UIComponents() {
             packageChooser = createPackageChooser();
@@ -543,6 +568,10 @@ public class DtoConfigDialog extends DialogWrapper {
             rememberAuthorBox = new JCheckBox("記住作者", !config.author.isEmpty());
             javaVersionBox = createJavaVersionBox();
             mainClassField = createTextField(config.mainClassName);
+            jsonPropertyStyleCombo = new JComboBox<>(JSON_STYLES);
+            jsonAliasStyleCombo = new JComboBox<>(JSON_ALIAS_OPTIONS);
+            jsonPropertyStyleCombo.setSelectedItem("原始格式");
+            jsonAliasStyleCombo.setSelectedItem("無");
         }
 
         private TextFieldWithBrowseButton createPackageChooser() {
@@ -572,5 +601,13 @@ public class DtoConfigDialog extends DialogWrapper {
 
     public boolean isRememberAuthor() {
         return ui.rememberAuthorBox.isSelected();
+    }
+
+    public String getJsonPropertyStyle() {
+        return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
+    }
+
+    public String getJsonAliasStyle() {
+        return (String) ui.jsonAliasStyleCombo.getSelectedItem();
     }
 }

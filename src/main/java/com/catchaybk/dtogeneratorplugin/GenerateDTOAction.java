@@ -30,7 +30,7 @@ public class GenerateDTOAction extends AnAction {
             return;
 
         // 獲取用戶配置
-        UserConfig config = getUserConfig(dialog);
+        UserConfig config = dialog.getUserConfig();
 
         // 創建目標目錄
         PsiDirectory targetDirectory = createPackageDirectories(project, e.getData(CommonDataKeys.PSI_FILE),
@@ -59,7 +59,10 @@ public class GenerateDTOAction extends AnAction {
                 dialog.isJava17(),
                 dialog.getMessageDirectionComment(),
                 dialog.getLevelClassNamesMap(),
-                dialog.getTargetPackage());
+                dialog.getTargetPackage(),
+                "原始格式", // 默認 JSON Property 格式
+                "無" // 默認 JSON Alias 格式
+        );
     }
 
     private PsiDirectory createPackageDirectories(Project project, PsiFile currentFile, String packageName) {
@@ -111,7 +114,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, UserConfig config) {
+            DtoStructure structure, UserConfig config) {
         String classContent = new DtoClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
 
@@ -124,7 +127,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,
-                                 String className, String classContent) {
+            String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 

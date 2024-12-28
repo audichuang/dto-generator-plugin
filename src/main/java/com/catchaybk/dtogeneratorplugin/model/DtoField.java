@@ -176,7 +176,7 @@ public class DtoField {
                 imports.add("java.math.BigDecimal");
             }
 
-            // 如果有 size 格式，添加 Digits 註解
+            // 果有 size 格式，添加 Digits 註解
             if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal"))
                     && !size.isEmpty()) {
                 // 根據 Java 版本選擇正確的包
@@ -190,6 +190,52 @@ public class DtoField {
     public void setRequiredString(String requiredString) {
         this.requiredString = requiredString;
         this.required = "Y".equalsIgnoreCase(requiredString); // 只有當值為 "Y" 時才設為 true
+    }
+
+    public String formatName(String style) {
+        if (style == null || style.equals("原始格式")) {
+            return dataName;
+        }
+
+        switch (style) {
+            case "全大寫":
+                return dataName.toUpperCase();
+            case "全小寫":
+                return dataName.toLowerCase();
+            case "大寫底線":
+                return toUpperSnakeCase(dataName);
+            case "小駝峰":
+                return toCamelCase(dataName, false);
+            case "大駝峰":
+                return toCamelCase(dataName, true);
+            case "無":
+                return null; // 不添加 JsonAlias
+            default:
+                return dataName;
+        }
+    }
+
+    private String toUpperSnakeCase(String input) {
+        String regex = "([a-z])([A-Z])";
+        String replacement = "$1_$2";
+        return input.replaceAll(regex, replacement).toUpperCase();
+    }
+
+    private String toCamelCase(String input, boolean capitalizeFirst) {
+        String[] parts = input.split("[_\\s]+");
+        StringBuilder camelCase = new StringBuilder();
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i].toLowerCase();
+            if (i == 0 && !capitalizeFirst) {
+                camelCase.append(part);
+            } else {
+                camelCase.append(Character.toUpperCase(part.charAt(0)))
+                        .append(part.substring(1));
+            }
+        }
+
+        return camelCase.toString();
     }
 
 }

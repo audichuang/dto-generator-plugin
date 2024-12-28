@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.*;
 
 public class DtoTableModel extends DefaultTableModel {
-    private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
+    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
@@ -23,7 +23,7 @@ public class DtoTableModel extends DefaultTableModel {
     }
 
     public void addEmptyRow() {
-        addRow(new Object[] { "", "", "", "", "", "" });
+        addRow(new Object[]{"", "", "", "", "", ""});
     }
 
     public void processClipboardData(String clipboardData) {
