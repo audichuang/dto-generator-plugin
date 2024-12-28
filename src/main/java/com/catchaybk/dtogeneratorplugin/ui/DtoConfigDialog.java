@@ -365,7 +365,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 更新所有類名
-     * 當MSGID或電文方向改變時自動更新所有相關類名
+     * 當MSGID或電文方向改變時自動更新所有相關���名
      */
     private void updateAllClassNames() {
         String direction = (String) ui.directionComboBox.getSelectedItem();
@@ -614,10 +614,14 @@ public class DtoConfigDialog extends DialogWrapper {
             JComboBox<String> box = new JComboBox<>(MESSAGE_DIRECTIONS);
             box.setSelectedItem("無");
 
+            // 設置下拉選單的大小
+            box.setPreferredSize(new Dimension(150, FIELD_HEIGHT));
+            box.setMaximumSize(new Dimension(150, FIELD_HEIGHT));
+
             // 使用 ActionListener
             box.addActionListener(e -> {
                 updateTranIdVisibility();
-                updateAllClassNames(); // 直接調用，不需要 invokeLater
+                updateAllClassNames();
             });
 
             return box;
