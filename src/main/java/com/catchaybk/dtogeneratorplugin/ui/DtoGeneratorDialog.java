@@ -12,6 +12,7 @@ import com.intellij.ui.table.JBTable;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -60,6 +61,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
         String[] columnNames = {"Level", "Data Name", "Data Type", "Size", "Nullable", "Comments"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JBTable(tableModel);
+        // 設置自定義的單元格渲染器
+        table.getColumnModel().getColumn(2).setCellRenderer(new ValidationCellRenderer());
+
     }
 
     @Nullable
@@ -317,6 +321,12 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
+        // 在顯示配置對話框前先驗證數據類型
+        if (!validateDataTypes()) {
+            return;
+        }
+
+
         // 按層級收集自定義類型
         Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
@@ -370,9 +380,34 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
     }
 
-    // 添加這個新方法
     public String getMessageDirectionComment() {
         return configDialog != null ? configDialog.getMessageDirectionComment() : "";
+    }
+
+    private boolean validateDataTypes() {
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        boolean hasError = false;
+
+        // 遍歷所有行檢查數據類型
+        for (int i = 0; i < model.getRowCount(); i++) {
+            String dataType = (String) model.getValueAt(i, 2);
+            if (dataType == null || dataType.trim().isEmpty()) {
+                hasError = true;
+            }
+        }
+
+        // 強制表格重繪以更新單元格背景色
+        table.repaint();
+
+        if (hasError) {
+            Messages.showErrorDialog(
+                    "請填寫所有欄位的數據類型",
+                    "數據類型缺失"
+            );
+            return false;
+        }
+
+        return true;
     }
 
 
@@ -455,6 +490,11 @@ public class DtoGeneratorDialog extends DialogWrapper {
             Messages.showWarningDialog("請先完成配置", "警告");
             return;
         }
+
+        // 在完成操作前再次驗證數據類型
+        if (!validateDataTypes()) {
+            return;
+        }
         super.doOKAction();
     }
 
@@ -472,5 +512,30 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     public boolean isUpstream() {
         return isUpstream;
+    }
+}
+
+// 自定義的 TableCellRenderer
+class ValidationCellRenderer extends DefaultTableCellRenderer {
+    @Override
+    public Component getTableCellRendererComponent(
+            JTable table, Object value,
+            boolean isSelected, boolean hasFocus,
+            int row, int column) {
+        Component c = super.getTableCellRendererComponent(
+                table, value, isSelected, hasFocus, row, column);
+
+        if (column == 2) { // Data Type 列
+            String dataType = value != null ? value.toString() : "";
+            if (dataType.trim().isEmpty()) {
+                setBackground(new Color(255, 200, 200)); // 淺紅色
+            } else {
+                setBackground(table.getBackground()); // 恢復默認背景色
+            }
+        } else {
+            setBackground(table.getBackground()); // 其他列使用默認背景色
+        }
+
+        return c;
     }
 }

@@ -339,7 +339,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
 
     public String getMsgId() {
-        return getEffectiveId();
+        return msgIdField.getText().trim();
     }
 
     public String getAuthor() {
