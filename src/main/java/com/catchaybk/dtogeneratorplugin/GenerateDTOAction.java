@@ -19,396 +19,138 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class GenerateDTOAction extends AnAction {
-
     private String targetPackage;
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        if (project == null) return;
+        if (project == null)
+            return;
 
-        // 獲取當前文件所在的包路徑
-        PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
-        String defaultPackage = "dto";
-        if (currentFile instanceof PsiJavaFile) {
-            String currentPackage = ((PsiJavaFile) currentFile).getPackageName();
-            defaultPackage = currentPackage + ".dto";
-        }
-
+        // 顯示配置對話框
         DtoGeneratorDialog dialog = new DtoGeneratorDialog(project);
-        if (dialog.showAndGet()) {
-            List<DtoField> dtoFields = dialog.getDtoFields();
-            String mainClassName = dialog.getMainClassName();
-            String author = dialog.getAuthor();
-            String msgId = dialog.getMsgId();
-            boolean isJava17 = dialog.isJava17();
-            String messageDirectionComment = dialog.getMessageDirectionComment();
-            Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
+        if (!dialog.showAndGet())
+            return;
 
-            // 使用用戶在對話框中選擇的包名，而不是默認值
-            String targetPackage = dialog.getTargetPackage();
+        // 獲取用戶配置
+        UserConfig config = getUserConfig(dialog);
 
-            // 創建或獲取目標目錄
-            PsiDirectory targetDirectory = createPackageDirectories(project, currentFile, targetPackage);
-            if (targetDirectory == null) {
-                Messages.showErrorDialog(project, "無法創建目標包路徑", "錯誤");
-                return;
-            }
-
-            WriteCommandAction.runWriteCommandAction(project, () -> {
-                try {
-                    generateDtoClasses(project, targetDirectory, dtoFields, mainClassName,
-                            author, msgId, messageDirectionComment, levelClassNamesMap, isJava17);
-                } catch (Exception ex) {
-                    Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
-                }
-            });
+        // 創建目標目錄
+        PsiDirectory targetDirectory = createPackageDirectories(project, e.getData(CommonDataKeys.PSI_FILE),
+                config.targetPackage);
+        if (targetDirectory == null) {
+            Messages.showErrorDialog(project, "無法創建目標包路徑", "錯誤");
+            return;
         }
+
+        // 生成 DTO 類
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            try {
+                generateDtoClasses(project, targetDirectory, config);
+            } catch (Exception ex) {
+                Messages.showErrorDialog(project, "生成DTO時發生錯誤: " + ex.getMessage(), "錯誤");
+            }
+        });
+    }
+
+    private UserConfig getUserConfig(DtoGeneratorDialog dialog) {
+        return new UserConfig(
+                dialog.getDtoFields(),
+                dialog.getMainClassName(),
+                dialog.getAuthor(),
+                dialog.getMsgId(),
+                dialog.isJava17(),
+                dialog.getMessageDirectionComment(),
+                dialog.getLevelClassNamesMap(),
+                dialog.getTargetPackage());
     }
 
     private PsiDirectory createPackageDirectories(Project project, PsiFile currentFile, String packageName) {
         try {
             PsiManager psiManager = PsiManager.getInstance(project);
-
-            // 獲取源代碼根目錄
-            VirtualFile sourceRoot = null;
-            if (currentFile != null) {
-                sourceRoot = ProjectRootManager.getInstance(project)
-                        .getFileIndex()
-                        .getSourceRootForFile(currentFile.getVirtualFile());
-            }
-
-            if (sourceRoot == null) {
-                // 如果找不到當前文件的源根，使用項目的第一個源根
-                VirtualFile[] roots = ProjectRootManager.getInstance(project).getContentSourceRoots();
-                if (roots.length > 0) {
-                    sourceRoot = roots[0];
-                }
-            }
-
-            if (sourceRoot == null) {
+            VirtualFile sourceRoot = findSourceRoot(project, currentFile);
+            if (sourceRoot == null)
                 return null;
-            }
 
-            // 創建包路徑
             PsiDirectory directory = psiManager.findDirectory(sourceRoot);
-            if (directory == null) {
+            if (directory == null)
                 return null;
-            }
 
-            // 保存包名以供後續使用
             this.targetPackage = packageName;
-
-            // 按照包路徑創建目錄
-            for (String pkg : packageName.split("\\.")) {
-                PsiDirectory subDir = directory.findSubdirectory(pkg);
-                if (subDir == null) {
-                    directory = directory.createSubdirectory(pkg);
-                } else {
-                    directory = subDir;
-                }
-            }
-
-            return directory;
-        } catch (Exception e) {
+            return createDirectories(directory, packageName);
+        } catch (Exception ex) {
             return null;
         }
     }
 
-
-    private void generateDtoClasses(Project project, PsiDirectory directory,
-                                    List<DtoField> allFields, String mainClassName,
-                                    String author, String msgId, String messageDirectionComment,
-                                    Map<Integer, Map<String, String>> levelClassNamesMap,
-                                    boolean isJava17) {
-        DtoStructure mainStructure = analyzeDtoStructure(allFields, mainClassName, levelClassNamesMap);
-        generateAllClasses(project, directory, mainStructure, author, msgId, messageDirectionComment, isJava17);
+    private VirtualFile findSourceRoot(Project project, PsiFile currentFile) {
+        if (currentFile != null) {
+            VirtualFile sourceRoot = ProjectRootManager.getInstance(project)
+                    .getFileIndex()
+                    .getSourceRootForFile(currentFile.getVirtualFile());
+            if (sourceRoot != null)
+                return sourceRoot;
+        }
+        VirtualFile[] roots = ProjectRootManager.getInstance(project).getContentSourceRoots();
+        return roots.length > 0 ? roots[0] : null;
     }
 
-    private DtoStructure analyzeDtoStructure(List<DtoField> allFields, String mainClassName,
-                                             Map<Integer, Map<String, String>> levelClassNamesMap) {
-        // 找出最小層級
-        int minLevel = allFields.stream()
-                .mapToInt(DtoField::getLevel)
-                .min()
-                .orElse(1); // 如果沒有字段，默認為1
-
-        // 創建主結構
-        DtoStructure mainStructure = new DtoStructure(mainClassName);
-        Map<Integer, Map<String, DtoStructure>> levelStructures = new HashMap<>();
-        Map<String, DtoStructure> currentLevelStructures = new HashMap<>();
-        levelStructures.put(minLevel, currentLevelStructures);
-        currentLevelStructures.put("main", mainStructure);
-
-        // 按層級分組字段
-        Map<Integer, List<DtoField>> levelFields = new HashMap<>();
-        for (DtoField field : allFields) {
-            levelFields.computeIfAbsent(field.getLevel(), k -> new ArrayList<>()).add(field);
+    private PsiDirectory createDirectories(PsiDirectory root, String packagePath) {
+        PsiDirectory current = root;
+        for (String dir : packagePath.split("\\.")) {
+            PsiDirectory subDir = current.findSubdirectory(dir);
+            current = subDir != null ? subDir : current.createSubdirectory(dir);
         }
-
-        // 處理每一層級
-        Set<Integer> levels = new TreeSet<>(levelFields.keySet()); // 使用TreeSet來確保層級順序
-        for (Integer level : levels) {
-            List<DtoField> fields = levelFields.get(level);
-            if (fields == null) continue;
-
-            // 獲取當前層級的結構映射
-            currentLevelStructures = levelStructures.computeIfAbsent(level, k -> new HashMap<>());
-
-            for (DtoField field : fields) {
-                // 找到父字段和父結構
-                DtoField parentField = findParentField(allFields, field);
-                DtoStructure parentStructure;
-                if (level == minLevel) {
-                    parentStructure = mainStructure;
-                } else {
-                    Map<String, DtoStructure> parentLevelStructures = levelStructures.get(level - 1);
-                    String parentKey = parentField != null ? parentField.getDataName() : "main";
-                    parentStructure = parentLevelStructures.get(parentKey);
-                    if (parentStructure == null) continue;
-                }
-
-                // 如果是對象或列表類型，創建新的結構
-                // 在 analyzeDtoStructure 方法中修改處理字段類型的部分
-                if (field.isObject() || field.isList()) {
-                    // 如果是列表類型，檢查是否需要創建新的結構
-                    if (field.isList()) {
-                        String dataType = field.getDataType().toLowerCase();
-                        // 檢查是否是基本型別的列表
-                        if (dataType.startsWith("list<")) {
-                            String genericType = dataType.substring(5, dataType.length() - 1).trim();
-                            if (field.isPrimitiveOrWrapperType(genericType)) {
-                                // 如果是基本型別的列表，直接使用該類型，不創建新結構
-                                field.setDataType("List<" + genericType + ">");
-                                parentStructure.addField(field);
-                                continue;
-                            }
-                        }
-                    }
-
-                    // 從配置中獲取類名
-                    String configuredClassName = null;
-                    Map<String, String> levelMap = levelClassNamesMap.get(level);
-                    if (levelMap != null) {
-                        configuredClassName = levelMap.get(field.getDataName());
-                    }
-
-                    // 如果沒有配置的類名，使用默認的
-                    if (configuredClassName == null || configuredClassName.isEmpty()) {
-                        if (field.getDataName().equals("SupList")) {
-                            configuredClassName = levelClassNamesMap.get(1).get("SupList");
-                        } else if (field.getDataName().equals("SubSeqnoList")) {
-                            configuredClassName = levelClassNamesMap.get(2).get("SubSeqnoList");
-                        } else {
-                            configuredClassName = field.getDataName() + "DTO";
-                        }
-                    }
-
-                    // 設置子類名稱
-                    field.setChildClassName(configuredClassName);
-
-                    // 更新字段的數據類型
-                    if (field.isList()) {
-                        field.setDataType("List<" + configuredClassName + ">");
-                    } else {
-                        field.setDataType(configuredClassName);
-                    }
-
-                    // 創建子結構
-                    DtoStructure childStructure = new DtoStructure(configuredClassName);
-                    parentStructure.addChildStructure(childStructure, field);
-                    currentLevelStructures.put(field.getDataName(), childStructure);
-                }
-
-                // 添加字段到父結構
-                parentStructure.addField(field);
-            }
-        }
-        return mainStructure;
+        return current;
     }
 
-    private DtoField findParentField(List<DtoField> allFields, DtoField currentField) {
-        int currentIndex = allFields.indexOf(currentField);
-        int targetLevel = currentField.getLevel() - 1;
+    private void generateDtoClasses(Project project, PsiDirectory directory, UserConfig config) {
+        DtoStructure mainStructure = new DtoStructureAnalyzer(
+                config.dtoFields,
+                config.mainClassName,
+                config.levelClassNamesMap).analyze();
 
-        // 從當前字段向前查找最近的父層級字段
-        for (int i = currentIndex - 1; i >= 0; i--) {
-            DtoField field = allFields.get(i);
-            if (field.getLevel() == targetLevel && (field.isObject() || field.isList())) {
-                return field;
-            }
-            // 如果找到更低層級的字段，則停止查找
-            if (field.getLevel() < targetLevel) {
-                break;
-            }
-        }
-        return null;
+        generateAllClasses(project, directory, mainStructure, config);
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, String author, String msgId,
-                                    String messageDirectionComment, boolean isJava17) {
-        String classContent = generateDtoClass(structure.getClassName(),
-                structure.getFields(), author, msgId, messageDirectionComment, isJava17);
-        createOrUpdateJavaClass(project, directory, structure.getClassName(), classContent);
+            DtoStructure structure, UserConfig config) {
+        String classContent = new DtoClassGenerator(targetPackage, config)
+                .generateClass(structure.getClassName(), structure.getFields());
 
+        createJavaClass(project, directory, structure.getClassName(), classContent);
+
+        // 遞歸生成子類
         for (DtoStructure childStructure : structure.getChildStructures()) {
-            generateAllClasses(project, directory, childStructure, author, msgId,
-                    messageDirectionComment, isJava17);
+            generateAllClasses(project, directory, childStructure, config);
         }
     }
 
-    private void createOrUpdateJavaClass(Project project, PsiDirectory directory,
-                                         String className, String classContent) {
+    private void createJavaClass(Project project, PsiDirectory directory,
+            String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 
-        // 檢查文件是否已存在
+        // 刪除已存在的文件
         PsiFile existingFile = directory.findFile(fileName);
         if (existingFile != null) {
             existingFile.delete();
         }
 
-        // 創建新的Java文件
-        PsiFile file = factory.createFileFromText(fileName,
-                StdFileTypes.JAVA, // 使用 StdFileTypes.JAVA 替代 JavaFileType
-                classContent);
-
-        // 添加到目錄
+        // 創建新文件
+        PsiFile file = factory.createFileFromText(fileName, StdFileTypes.JAVA, classContent);
         directory.add(file);
 
         // 優化導入
         if (file instanceof PsiJavaFile) {
-            JavaCodeStyleManager.getInstance(project).optimizeImports((PsiJavaFile) file);
-            JavaCodeStyleManager.getInstance(project).shortenClassReferences(file);
+            JavaCodeStyleManager styleManager = JavaCodeStyleManager.getInstance(project);
+            styleManager.optimizeImports((PsiJavaFile) file);
+            styleManager.shortenClassReferences(file);
         }
-    }
-
-    private String generateDtoClass(String className, List<DtoField> fields, String author,
-                                    String msgId, String messageDirectionComment, boolean isJava17) {
-        StringBuilder sb = new StringBuilder();
-        // 使用配置的包路徑
-        String packageName = targetPackage;
-        if (packageName != null && !packageName.isEmpty()) {
-            sb.append("package ").append(packageName).append(";\n\n");
-        }
-
-        // 添加導入
-        Set<String> imports = new HashSet<>();
-        imports.add("com.fasterxml.jackson.annotation.JsonProperty");
-        imports.add("lombok.Data");
-
-        // 根據 Java 版本添加不同的驗證相關導入
-        boolean hasValidation = false;
-        boolean needsValid = false;
-
-        for (DtoField field : fields) {
-            // 檢查是否需要驗證註解
-            if (field.isRequired()) {
-                hasValidation = true;
-                // 根據 Java 版本選擇適當的驗證包路徑
-                if (isJava17) {
-                    imports.add("jakarta.validation.constraints.NotNull");
-                    imports.add("jakarta.validation.constraints.NotBlank");
-                    imports.add("jakarta.validation.constraints.Size");
-                } else {
-                    imports.add("javax.validation.constraints.NotNull");
-                    imports.add("javax.validation.constraints.NotBlank");
-                    imports.add("javax.validation.constraints.Size");
-                }
-            }
-
-            // 檢查是否有需要驗證的物件類型
-            if (field.isObject() && !field.isList()) {
-                needsValid = true;
-                // 根據 Java 版本選擇適當的 @Valid 導入
-                if (isJava17) {
-                    imports.add("jakarta.validation.Valid");
-                } else {
-                    imports.add("javax.validation.Valid");
-                }
-            }
-
-            // 檢查是否有需要驗證的 List 類型
-            if (field.isList() && field.isObject()) {
-                needsValid = true;
-                // 根據 Java 版本選擇適當的 @Valid 導入
-                if (isJava17) {
-                    imports.add("jakarta.validation.Valid");
-                } else {
-                    imports.add("javax.validation.Valid");
-                }
-            }
-
-            // 添加其他必要的導入
-            imports.addAll(field.getRequiredImports());
-        }
-
-        // 按字母順序排序並添加導入語句
-        imports.stream()
-                .sorted()
-                .forEach(imp -> sb.append("import ").append(imp).append(";\n"));
-
-        sb.append("\n");
-
-        // 添加類註釋
-        if (messageDirectionComment != null && !messageDirectionComment.isEmpty()) {
-            sb.append("/**\n");
-            sb.append(" * ").append(msgId).append("\n");
-            sb.append(" * ").append(messageDirectionComment).append("\n");
-            if (author != null && !author.isEmpty()) {
-                sb.append(" * @author ").append(author).append("\n");
-            }
-            sb.append(" */\n");
-        }
-
-        // 添加類註解
-        sb.append("@Data\n");
-        sb.append("public class ").append(className).append(" {\n\n");
-
-        // 添加字段
-        for (DtoField field : fields) {
-            // 添加字段註釋
-            if (field.getComments() != null && !field.getComments().isEmpty()) {
-                sb.append("    /** ").append(field.getComments()).append(" */\n");
-            }
-
-            // 添加驗證註解
-            if (field.isRequired()) {
-                if (field.getDataType().toLowerCase().contains("string")) {
-                    sb.append("    @NotBlank\n");
-                } else {
-                    sb.append("    @NotNull\n");
-                }
-            }
-
-            // 添加 @Valid 註解（對於物件類型或包含物件的 List）
-            if ((field.isObject() && !field.isList()) ||
-                    (field.isList() && field.isObject())) {
-                sb.append("    @Valid\n");
-            }
-
-            // JsonProperty 註解
-            sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
-
-            // 如果有 Size 限制且是 String 類型，添加 @Size 註解
-            if (field.getDataType().toLowerCase().contains("string") &&
-                    !field.getSize().isEmpty()) {
-                sb.append("    @Size(max = ").append(field.getSize()).append(")\n");
-            }
-
-            // 字段定義
-            sb.append("    private ").append(field.getFormattedDataType())
-                    .append(" ").append(field.getCamelCaseName()).append(";\n\n");
-        }
-
-        sb.append("}\n");
-        return sb.toString();
     }
 
     @Override
     public void update(@NotNull AnActionEvent e) {
-        Project project = e.getProject();
-        e.getPresentation().setEnabledAndVisible(project != null);
+        e.getPresentation().setEnabledAndVisible(e.getProject() != null);
     }
 }

@@ -20,14 +20,14 @@ public class DtoField {
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
 
     static {
-        // 初始化類型的導入路徑映射
+        // 添加 Timestamp 的支持
+        TYPE_IMPORT_MAP.put("Timestamp", "java.sql.Timestamp");
         TYPE_IMPORT_MAP.put("BigDecimal", "java.math.BigDecimal");
         TYPE_IMPORT_MAP.put("LocalDate", "java.time.LocalDate");
         TYPE_IMPORT_MAP.put("LocalDateTime", "java.time.LocalDateTime");
         TYPE_IMPORT_MAP.put("Date", "java.util.Date");
         TYPE_IMPORT_MAP.put("List", "java.util.List");
     }
-
 
     public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments) {
         this.level = level;
@@ -40,7 +40,8 @@ public class DtoField {
     }
 
     private boolean isPrimitiveType(String type) {
-        if (type == null) return false;
+        if (type == null)
+            return false;
 
         // 處理泛型類型，例如 List<String>
         if (type.toLowerCase().trim().startsWith("list<")) {
@@ -51,7 +52,6 @@ public class DtoField {
 
         return isPrimitiveOrWrapperType(type);
     }
-
 
     public boolean isPrimitiveOrWrapperType(String type) {
         // 創建一個不區分大小寫的比較集合
@@ -64,6 +64,7 @@ public class DtoField {
                 "boolean", "Boolean",
                 "date", "Date",
                 "datetime", "DateTime",
+                "timestamp", "Timestamp", // 添加 Timestamp 支持
                 "bigdecimal", "BigDecimal",
                 "char", "Character",
                 "byte", "Byte",
@@ -72,24 +73,23 @@ public class DtoField {
                 "decimal", "Decimal",
                 "number", "Number",
                 "LocalDate",
-                "LocalDateTime"
-        ));
+                "LocalDateTime"));
 
         // 使用原始類型進行比較，而不是轉換為小寫
         return primitiveAndWrapperTypes.contains(type);
     }
 
-
     public boolean isList() {
-        if (dataType == null) return false;
+        if (dataType == null)
+            return false;
         String type = dataType.trim();
         return type.equalsIgnoreCase("list") || // 添加對純 List 的支援
                 type.toLowerCase().startsWith("list<");
     }
 
-
     public boolean isObject() {
-        if (dataType == null) return false;
+        if (dataType == null)
+            return false;
 
         String type = dataType.trim();
 
@@ -108,7 +108,6 @@ public class DtoField {
         return type.equals("Object") || (!isPrimitiveType(type) && !isList());
     }
 
-
     public String getCamelCaseName() {
         if (dataName == null || dataName.isEmpty()) {
             return "";
@@ -122,7 +121,8 @@ public class DtoField {
     }
 
     public String getFormattedDataType() {
-        if (dataType == null) return "";
+        if (dataType == null)
+            return "";
 
         // 如果是 List 類型，需要特別處理
         if (dataType.trim().toLowerCase().startsWith("list<")) {
@@ -139,7 +139,6 @@ public class DtoField {
         // 非 List 類型，直接返回格式化後的類型名
         return formatTypeName(dataType.trim());
     }
-
 
     public String getCapitalizedName() {
         if (dataName == null || dataName.isEmpty()) {
@@ -167,6 +166,7 @@ public class DtoField {
         typeMapping.put("boolean", "Boolean");
         typeMapping.put("date", "Date");
         typeMapping.put("datetime", "LocalDateTime");
+        typeMapping.put("timestamp", "Timestamp"); // 添加 Timestamp 映射
         typeMapping.put("bigdecimal", "BigDecimal");
         typeMapping.put("decimal", "BigDecimal");
         typeMapping.put("char", "Character");
@@ -210,6 +210,5 @@ public class DtoField {
         this.requiredString = requiredString;
         this.required = "Y".equalsIgnoreCase(requiredString); // 只有當值為 "Y" 時才設為 true
     }
-
 
 }
