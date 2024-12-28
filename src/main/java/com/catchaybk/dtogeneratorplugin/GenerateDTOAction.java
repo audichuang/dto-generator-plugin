@@ -50,21 +50,6 @@ public class GenerateDTOAction extends AnAction {
         });
     }
 
-    private UserConfig getUserConfig(DtoGeneratorDialog dialog) {
-        return new UserConfig(
-                dialog.getDtoFields(),
-                dialog.getMainClassName(),
-                dialog.getAuthor(),
-                dialog.getMsgId(),
-                dialog.isJava17(),
-                dialog.getMessageDirectionComment(),
-                dialog.getLevelClassNamesMap(),
-                dialog.getTargetPackage(),
-                "原始格式", // 默認 JSON Property 格式
-                "無" // 默認 JSON Alias 格式
-        );
-    }
-
     private PsiDirectory createPackageDirectories(Project project, PsiFile currentFile, String packageName) {
         try {
             PsiManager psiManager = PsiManager.getInstance(project);

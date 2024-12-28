@@ -6,6 +6,7 @@ import com.catchaybk.dtogeneratorplugin.ui.ValidationMessageSettingDialog;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * DTO類生成器
@@ -47,7 +48,7 @@ public class DtoClassGenerator {
         Set<String> imports = new HashSet<>();
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
 
-        if (!config.jsonAliasStyle.equals("無")) {
+        if (!config.jsonAliasStyles.isEmpty()) {
             imports.add("com.fasterxml.jackson.annotation.JsonAlias");
         }
 
@@ -145,12 +146,19 @@ public class DtoClassGenerator {
         String jsonPropertyName = field.formatName(config.jsonPropertyStyle);
         sb.append("    @JsonProperty(\"").append(jsonPropertyName).append("\")\n");
 
-        // JsonAlias 註解（如果需要）
-        if (!config.jsonAliasStyle.equals("無")) {
-            String jsonAliasName = field.formatName(config.jsonAliasStyle);
-            if (!jsonAliasName.equals(jsonPropertyName)) {
-                sb.append("    @JsonAlias(\"").append(jsonAliasName).append("\")\n");
-            }
+        // JsonAlias 註解（如果有選擇的格式）
+        List<String> aliasNames = config.jsonAliasStyles.stream()
+                .map(field::formatName)
+                .filter(name -> !name.equals(jsonPropertyName)) // 排除與 JsonProperty 相同的名稱
+                .distinct() // 去重
+                .collect(Collectors.toList());
+
+        if (!aliasNames.isEmpty()) {
+            sb.append("    @JsonAlias({")
+                    .append(aliasNames.stream()
+                            .map(name -> "\"" + name + "\"")
+                            .collect(Collectors.joining(", ")))
+                    .append("})\n");
         }
 
         String lowerType = field.getDataType().toLowerCase();

@@ -23,11 +23,12 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * DTO配置對話框
  * 用於配置DTO生成的相關參數，包括：
- * 1. 基本配置（包路徑、作者、Java）
+ * 1. 基��配置（包路徑、作者、Java）
  * 2. 電文相關配置（MSGID、電文方向等）
  * 3. 類名配置（主類名和各層級類名）
  */
@@ -99,7 +100,7 @@ public class DtoConfigDialog extends DialogWrapper {
                 ui.javaVersionBox,
                 ui.mainClassField,
                 ui.jsonPropertyStyleCombo,
-                ui.jsonAliasStyleCombo
+                ui.jsonAliasScrollPane
         };
 
         String[] labels = {
@@ -465,7 +466,7 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     /**
-     * ���取有效的ID
+     * 取有效的ID
      *
      * @return 根據當前電文方向返回應的ID
      */
@@ -556,7 +557,8 @@ public class DtoConfigDialog extends DialogWrapper {
         final JComboBox<String> javaVersionBox;
         final JBTextField mainClassField;
         final JComboBox<String> jsonPropertyStyleCombo;
-        final JComboBox<String> jsonAliasStyleCombo;
+        final JList<String> jsonAliasStyleList;
+        final JScrollPane jsonAliasScrollPane;
 
         UIComponents() {
             packageChooser = createPackageChooser();
@@ -569,9 +571,14 @@ public class DtoConfigDialog extends DialogWrapper {
             javaVersionBox = createJavaVersionBox();
             mainClassField = createTextField(config.mainClassName);
             jsonPropertyStyleCombo = new JComboBox<>(JSON_STYLES);
-            jsonAliasStyleCombo = new JComboBox<>(JSON_ALIAS_OPTIONS);
+            jsonAliasStyleList = new JList<>(JSON_ALIAS_OPTIONS);
+            jsonAliasStyleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            jsonAliasStyleList.setVisibleRowCount(4);
+            jsonAliasScrollPane = new JBScrollPane(jsonAliasStyleList);
+            jsonAliasScrollPane.setPreferredSize(new Dimension(300, 100));
+
             jsonPropertyStyleCombo.setSelectedItem("原始格式");
-            jsonAliasStyleCombo.setSelectedItem("無");
+            jsonAliasStyleList.setSelectedIndex(0);
         }
 
         private TextFieldWithBrowseButton createPackageChooser() {
@@ -607,7 +614,10 @@ public class DtoConfigDialog extends DialogWrapper {
         return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
     }
 
-    public String getJsonAliasStyle() {
-        return (String) ui.jsonAliasStyleCombo.getSelectedItem();
+    public List<String> getJsonAliasStyles() {
+        return ui.jsonAliasStyleList.getSelectedValuesList().stream()
+                .map(style -> style.split(" ")[0])
+                .filter(style -> !style.equals("無"))
+                .collect(Collectors.toList());
     }
 }

@@ -371,6 +371,6 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 getLevelClassNamesMap(),
                 getTargetPackage(),
                 configDialog != null ? configDialog.getJsonPropertyStyle().split(" ")[0] : "原始格式",
-                configDialog != null ? configDialog.getJsonAliasStyle().split(" ")[0] : "無");
+                configDialog != null ? configDialog.getJsonAliasStyles() : Collections.emptyList());
     }
 }
