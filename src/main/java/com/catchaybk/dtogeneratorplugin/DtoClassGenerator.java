@@ -46,21 +46,28 @@ public class DtoClassGenerator {
         imports.add("lombok.Data");
 
         String validationPackage = config.isJava17 ? "jakarta.validation" : "javax.validation";
-        boolean hasValidation = false;
 
+        // 先檢查所有字段，收集需要的驗證註解
         for (DtoField field : fields) {
             // 添加字段本身需要的導入
             imports.addAll(field.getRequiredImports());
 
-            // 添加驗證相關的導入
             if (field.isRequired()) {
-                hasValidation = true;
-                imports.add(validationPackage + ".constraints.NotNull");
-                imports.add(validationPackage + ".constraints.NotBlank");
+                if (field.getDataType().toLowerCase().contains("string")) {
+                    imports.add(validationPackage + ".constraints.NotBlank");
+                } else {
+                    imports.add(validationPackage + ".constraints.NotNull");
+                }
+            }
+
+            // 對於String類型且有大小限制的字段
+            if (field.getDataType().toLowerCase().contains("string") && !field.getSize().isEmpty()) {
                 imports.add(validationPackage + ".constraints.Size");
             }
 
-            if ((field.isObject() && !field.isList()) || (field.isList() && field.isObject())) {
+            // 對於對象類型或包含對象的List
+            if ((field.isObject() && !field.isList()) ||
+                    (field.isList() && !field.isPrimitiveOrWrapperType(field.getDataType()))) {
                 imports.add(validationPackage + ".Valid");
             }
         }
@@ -104,17 +111,24 @@ public class DtoClassGenerator {
 
     private void generateFieldAnnotations(StringBuilder sb, DtoField field) {
         if (field.isRequired()) {
-            sb.append("    @")
-                    .append(field.getDataType().toLowerCase().contains("string") ? "NotBlank" : "NotNull")
-                    .append("\n");
+            // 使用簡短的註解名稱
+            if (field.getDataType().toLowerCase().contains("string")) {
+                sb.append("    @NotBlank\n");
+            } else {
+                sb.append("    @NotNull\n");
+            }
         }
 
-        if ((field.isObject() && !field.isList()) || (field.isList() && field.isObject())) {
+        // 對於對象類型或包含對象的List
+        if ((field.isObject() && !field.isList()) ||
+                (field.isList() && !field.isPrimitiveOrWrapperType(field.getDataType()))) {
             sb.append("    @Valid\n");
         }
 
+        // JsonProperty註解
         sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
 
+        // Size註解
         if (field.getDataType().toLowerCase().contains("string") && !field.getSize().isEmpty()) {
             sb.append("    @Size(max = ").append(field.getSize()).append(")\n");
         }
