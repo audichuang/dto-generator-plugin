@@ -58,7 +58,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
     }
 
     private void initializeTable() {
-        String[] columnNames = {"Level", "Data Name", "Data Type", "Size", "Nullable", "Comments"};
+        String[] columnNames = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JBTable(tableModel);
         // 設置自定義的單元格渲染器
@@ -178,15 +178,15 @@ public class DtoGeneratorDialog extends DialogWrapper {
                         isComment = true;
                     }
                 }
-                // 特殊處理第4列（Nullable）
+                // 特殊處理第4列（Required）
                 else if (currentColumn == 4) {
                     String trimmedPart = part.trim();
-                    // 檢查是否是有效的 Nullable 值（Y、N、-）
+                    // 檢查是否是有效的 Required 值（Y、N、-） 值（Y、N、-）
                     if (trimmedPart.matches("[YN-]")) {
                         columns[currentColumn] = trimmedPart;
                         currentColumn++;
                     } else {
-                        // 如果不是有效的 Nullable 值，則視為註釋的開始
+                        // 如果不是有效的 Required 值，則視為註釋的開始
                         if (comment.length() > 0) comment.append(" ");
                         comment.append(part.trim());
                         isComment = true;
@@ -216,7 +216,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
             String dataName = cells[1];
             String dataType = cells[2];
             String size = cells[3];
-            String nullable = cells[4];
+            String required = cells[4];
             String comments = cells.length > 5 ? cells[5].trim() : "";
 
             // 驗證數據
@@ -227,7 +227,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                         dataName,
                         dataType,
                         size,
-                        nullable,
+                        required,
                         comments
                 });
             }
@@ -483,10 +483,13 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 String dataName = tableModel.getValueAt(i, 1).toString();
                 String dataType = tableModel.getValueAt(i, 2).toString();
                 String size = tableModel.getValueAt(i, 3).toString();
-                boolean nullable = "Y".equalsIgnoreCase(tableModel.getValueAt(i, 4).toString());
+                String requiredStr = tableModel.getValueAt(i, 4).toString().trim(); // 獲取 Required 欄位值
+                boolean required = "Y".equalsIgnoreCase(requiredStr); // 只有 Y 才是必填
                 String comments = tableModel.getValueAt(i, 5).toString();
 
-                fields.add(new DtoField(level, dataName, dataType, size, nullable, comments));
+                DtoField field = new DtoField(level, dataName, dataType, size, required, comments);
+                field.setRequiredString(requiredStr); // 設置原始的 required 字符串
+                fields.add(field);
             } catch (Exception e) {
                 // 跳過無效的行
                 continue;

@@ -12,10 +12,11 @@ public class DtoField {
     private String dataName;
     private String dataType;
     private String size;
-    private boolean nullable;
+    private boolean required;
     private String comments;
     private String childClassName;
     private boolean isObject;
+    private String requiredString;
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
 
     static {
@@ -28,12 +29,12 @@ public class DtoField {
     }
 
 
-    public DtoField(int level, String dataName, String dataType, String size, boolean nullable, String comments) {
+    public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;
         this.size = size;
-        this.nullable = nullable;
+        this.required = required;
         this.comments = comments;
         this.isObject = !isPrimitiveType(dataType);
     }
@@ -203,6 +204,11 @@ public class DtoField {
         }
 
         return imports;
+    }
+
+    public void setRequiredString(String requiredString) {
+        this.requiredString = requiredString;
+        this.required = "Y".equalsIgnoreCase(requiredString); // 只有當值為 "Y" 時才設為 true
     }
 
 

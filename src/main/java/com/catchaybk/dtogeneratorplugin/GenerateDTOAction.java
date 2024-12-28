@@ -238,19 +238,6 @@ public class GenerateDTOAction extends AnAction {
             imports.add("javax.validation.constraints.Size");
         }
 
-//        // 檢查是否需要List導入
-//        if (fields.stream().anyMatch(f -> f.isList())) {
-//            imports.add("java.util.List");
-//        }
-//
-//        // 添加所有導入
-//        List<String> sortedImports = new ArrayList<>(imports);
-//        Collections.sort(sortedImports);
-//        for (String imp : sortedImports) {
-//            sb.append("import ").append(imp).append(";\n");
-//        }
-//        sb.append("\n");
-
         // 收集所有字段需要的導入
         for (DtoField field : fields) {
             imports.addAll(field.getRequiredImports());
@@ -284,36 +271,32 @@ public class GenerateDTOAction extends AnAction {
                 sb.append("    /** ").append(field.getComments()).append(" */\n");
             }
 
-            // 添加驗證註解
-            if (!field.isNullable()) {
-                if (field.getDataType().toLowerCase().equals("string")) {
+            // 只有當 Required 為 Y 時才添加驗證註解
+            if (field.isRequired()) { // 當 Required = Y 時
+                if (field.getDataType().toLowerCase().contains("string")) {
                     sb.append("    @NotBlank\n");
                 } else {
                     sb.append("    @NotNull\n");
                 }
             }
-            // 添加大小限制註解
-            if (field.getSize() != null && !field.getSize().isEmpty()) {
-                try {
-                    int size = Integer.parseInt(field.getSize());
-                    if (field.getDataType().toLowerCase().equals("string")) {
-                        sb.append("    @Size(max = ").append(size).append(")\n");
-                    }
-                } catch (NumberFormatException ignored) {
-                    // 如果size不是有效的數字，則忽略
-                }
-            }
 
-            // 添加 JsonProperty 註解
+            // JsonProperty 註解
             sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
 
-            // 添加字段定義
+            // 如果有 Size 限制且是 String 類型，添加 @Size 註解
+            if (field.getDataType().toLowerCase().contains("string") &&
+                    !field.getSize().isEmpty()) {
+                sb.append("    @Size(max = ").append(field.getSize()).append(")\n");
+            }
+
+            // 字段定義
             sb.append("    private ").append(field.getFormattedDataType())
                     .append(" ").append(field.getCamelCaseName()).append(";\n\n");
         }
 
         sb.append("}\n");
         return sb.toString();
+
     }
 
     @Override
