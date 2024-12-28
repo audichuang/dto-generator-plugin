@@ -227,40 +227,70 @@ public class GenerateDTOAction extends AnAction {
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
         imports.add("lombok.Data");
 
-        // 根據 Java 版本添加驗證相關的導入
-        if (isJava17) {
-            imports.add("jakarta.validation.constraints.NotNull");
-            imports.add("jakarta.validation.constraints.NotBlank");
-            imports.add("jakarta.validation.constraints.Size");
-        } else {
-            imports.add("javax.validation.constraints.NotNull");
-            imports.add("javax.validation.constraints.NotBlank");
-            imports.add("javax.validation.constraints.Size");
-        }
+        // 根據 Java 版本添加不同的驗證相關導入
+        boolean hasValidation = false;
+        boolean needsValid = false;
 
-        // 收集所有字段需要的導入
         for (DtoField field : fields) {
+            // 檢查是否需要驗證註解
+            if (field.isRequired()) {
+                hasValidation = true;
+                // 根據 Java 版本選擇適當的驗證包路徑
+                if (isJava17) {
+                    imports.add("jakarta.validation.constraints.NotNull");
+                    imports.add("jakarta.validation.constraints.NotBlank");
+                    imports.add("jakarta.validation.constraints.Size");
+                } else {
+                    imports.add("javax.validation.constraints.NotNull");
+                    imports.add("javax.validation.constraints.NotBlank");
+                    imports.add("javax.validation.constraints.Size");
+                }
+            }
+
+            // 檢查是否有需要驗證的物件類型
+            if (field.isObject() && !field.isList()) {
+                needsValid = true;
+                // 根據 Java 版本選擇適當的 @Valid 導入
+                if (isJava17) {
+                    imports.add("jakarta.validation.Valid");
+                } else {
+                    imports.add("javax.validation.Valid");
+                }
+            }
+
+            // 檢查是否有需要驗證的 List 類型
+            if (field.isList() && field.isObject()) {
+                needsValid = true;
+                // 根據 Java 版本選擇適當的 @Valid 導入
+                if (isJava17) {
+                    imports.add("jakarta.validation.Valid");
+                } else {
+                    imports.add("javax.validation.Valid");
+                }
+            }
+
+            // 添加其他必要的導入
             imports.addAll(field.getRequiredImports());
         }
 
         // 按字母順序排序並添加導入語句
-        List<String> sortedImports = new ArrayList<>(imports);
-        Collections.sort(sortedImports);
-        for (String imp : sortedImports) {
-            sb.append("import ").append(imp).append(";\n");
-        }
+        imports.stream()
+                .sorted()
+                .forEach(imp -> sb.append("import ").append(imp).append(";\n"));
+
         sb.append("\n");
 
-        // 添加類註解
-        sb.append("/**\n");
-        sb.append(" * ").append(msgId).append("\n");
-        // 根據電文方向添加說明
-        sb.append(" * ").append(messageDirectionComment).append("\n");
-        if (author != null && !author.isEmpty()) {
-            sb.append(" * @author ").append(author).append("\n");
+        // 添加類註釋
+        if (messageDirectionComment != null && !messageDirectionComment.isEmpty()) {
+            sb.append("/**\n");
+            sb.append(" * ").append(messageDirectionComment).append("\n");
+            if (author != null && !author.isEmpty()) {
+                sb.append(" * @author ").append(author).append("\n");
+            }
+            sb.append(" */\n");
         }
-        sb.append(" */\n");
 
+        // 添加類註解
         sb.append("@Data\n");
         sb.append("public class ").append(className).append(" {\n\n");
 
@@ -271,13 +301,19 @@ public class GenerateDTOAction extends AnAction {
                 sb.append("    /** ").append(field.getComments()).append(" */\n");
             }
 
-            // 只有當 Required 為 Y 時才添加驗證註解
-            if (field.isRequired()) { // 當 Required = Y 時
+            // 添加驗證註解
+            if (field.isRequired()) {
                 if (field.getDataType().toLowerCase().contains("string")) {
                     sb.append("    @NotBlank\n");
                 } else {
                     sb.append("    @NotNull\n");
                 }
+            }
+
+            // 添加 @Valid 註解（對於物件類型或包含物件的 List）
+            if ((field.isObject() && !field.isList()) ||
+                    (field.isList() && field.isObject())) {
+                sb.append("    @Valid\n");
             }
 
             // JsonProperty 註解
@@ -296,7 +332,6 @@ public class GenerateDTOAction extends AnAction {
 
         sb.append("}\n");
         return sb.toString();
-
     }
 
     @Override
@@ -305,4 +340,3 @@ public class GenerateDTOAction extends AnAction {
         e.getPresentation().setEnabledAndVisible(project != null);
     }
 }
-// TODO 如果用受信超大包 他config dialog包判斷 會不準確不會顯示所有包 要修正 應該是小寫list的問題
