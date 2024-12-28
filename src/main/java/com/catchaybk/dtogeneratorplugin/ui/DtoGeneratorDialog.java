@@ -53,11 +53,11 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     private JBTable createTable() {
         JBTable table = new JBTable(tableModel);
+        table.getColumnModel().getColumn(2).setCellRenderer(new DtoTableModel.ValidationCellRenderer());
+        table.getColumnModel().getColumn(3).setCellRenderer(new DtoTableModel.ValidationCellRenderer());
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setDragEnabled(false);
-        table.getTableHeader().setReorderingAllowed(false);
-
-        // 註冊快捷鍵
+        table.getTableHeader().setReorderingAllowed(true);
         registerPasteAction(table);
         return table;
     }
@@ -134,9 +134,34 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
-        if (!tableModel.validateDataTypes()) {
-            Messages.showErrorDialog(project, "請填寫所有欄位的數據類型", "錯誤");
+        // 檢查數據類型和Size格式
+        Set<String> unknownTypes = tableModel.validateTypes();
+        if (unknownTypes == null) { // null 表示有錯誤（空值或Size格式錯誤）
             return;
+        }
+
+        // 處理未知類型的警告
+        if (!unknownTypes.isEmpty()) {
+            String unknownTypesStr = String.join(", ", unknownTypes);
+            String message = String.format(
+                    "發現未知的數據類型：\n%s\n\n" +
+                            "這些類型系統沒有見過，可能是：\n" +
+                            "1. 新的自定義類型\n" +
+                            "2. 輸入錯誤\n\n" +
+                            "請確認是否要繼續？",
+                    unknownTypesStr);
+
+            String[] options = { "繼續", "取消" };
+            int result = Messages.showDialog(
+                    message,
+                    "警告",
+                    options,
+                    0,
+                    Messages.getWarningIcon());
+
+            if (result != 0) { // 不繼續
+                return;
+            }
         }
 
         configDialog = createConfigDialog();
@@ -233,12 +258,12 @@ public class DtoGeneratorDialog extends DialogWrapper {
                     // 如果存在 dto 目錄，返回完整的 dto 包路徑
                     return basePackage + ".dto";
                 } else {
-                    // 如果不存在 dto 目錄，返回當前包路徑
+                    // 如果不存在 dto 目���，返回當前包路徑
                     return basePackage;
                 }
             }
         } catch (Exception e) {
-            // 如果發生錯誤，返回空字符串或默認包名
+            // 如���發生錯誤，返回空字符串或默認包名
             return "";
         }
         return "";

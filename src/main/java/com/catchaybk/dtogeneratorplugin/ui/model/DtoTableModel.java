@@ -1,11 +1,20 @@
 package com.catchaybk.dtogeneratorplugin.ui.model;
 
+import com.catchaybk.dtogeneratorplugin.config.DataTypeConfig;
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
+import com.intellij.openapi.ui.Messages;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
 import java.util.*;
 
 public class DtoTableModel extends DefaultTableModel {
     private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
+
+    private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
 
     public DtoTableModel() {
         super(COLUMN_NAMES, 0);
@@ -48,62 +57,48 @@ public class DtoTableModel extends DefaultTableModel {
         Arrays.fill(columns, "");
 
         String[] parts = row.split("\\t|(?:  +)");
-        int currentColumn = 0;
-        StringBuilder comment = new StringBuilder();
-        boolean isComment = false;
 
-        for (String part : parts) {
-            if (part.trim().isEmpty())
-                continue;
-
-            if (isComment || currentColumn > 4) {
-                appendToComment(comment, part);
-                isComment = true;
-            } else {
-                currentColumn = processColumn(columns, currentColumn, part, comment);
-                if (currentColumn == -1) {
-                    isComment = true;
-                }
+        // 找到第一個數字（level）的位置
+        int levelPos = -1;
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].trim().matches("\\d+")) {
+                levelPos = i;
+                break;
             }
         }
 
-        if (comment.length() > 0) {
-            columns[5] = comment.toString().trim();
+        if (levelPos == -1)
+            return columns;
+
+        // 根據當前列的順序填充數據
+        for (int i = levelPos; i < parts.length && i - levelPos < 6; i++) {
+            String part = parts[i].trim();
+            if (part.isEmpty())
+                continue;
+
+            int relativePos = i - levelPos;
+            columns[getColumnByPosition(relativePos)] = part;
         }
 
         return columns;
     }
 
-    private void appendToComment(StringBuilder comment, String part) {
-        if (comment.length() > 0) {
-            comment.append(" ");
-        }
-        comment.append(part.trim());
-    }
-
-    private int processColumn(String[] columns, int currentColumn, String part, StringBuilder comment) {
-        String trimmedPart = part.trim();
-
-        switch (currentColumn) {
-            case 3: // Size
-                if (trimmedPart.matches("\\d+")) {
-                    columns[currentColumn] = trimmedPart;
-                    return currentColumn + 1;
-                }
-                appendToComment(comment, part);
-                return -1;
-
-            case 4: // Required
-                if (trimmedPart.matches("[YN-]")) {
-                    columns[currentColumn] = trimmedPart;
-                    return currentColumn + 1;
-                }
-                appendToComment(comment, part);
-                return -1;
-
+    private int getColumnByPosition(int pos) {
+        switch (pos) {
+            case 0:
+                return 0; // Level 永遠是第一個
+            case 1:
+                return 1; // Data Name 永遠是第二個
+            case 2:
+                return 2; // Data Type
+            case 3:
+                return 3; // Size
+            case 4:
+                return 4; // Required
+            case 5:
+                return 5; // Comments
             default:
-                columns[currentColumn] = trimmedPart;
-                return currentColumn + 1;
+                return -1;
         }
     }
 
@@ -137,13 +132,105 @@ public class DtoTableModel extends DefaultTableModel {
         return field;
     }
 
-    public boolean validateDataTypes() {
+    /**
+     * 驗證所有數據類型和Size格式
+     * 
+     * @return null 如果有錯誤，否則返回未知類型的集合
+     */
+    public Set<String> validateTypes() {
+        boolean hasEmptyTypes = false;
+        boolean hasSizeError = false;
+        Set<String> unknownTypesList = new HashSet<>();
+
+        // 獲取 Data Type 和 Size 列的索引
+        int dataTypeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Data Type");
+        int sizeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Size");
+
         for (int i = 0; i < getRowCount(); i++) {
-            String dataType = (String) getValueAt(i, 2);
+            String dataType = (String) getValueAt(i, dataTypeIndex);
+            String size = (String) getValueAt(i, sizeIndex);
+
+            // 檢查必填的 Data Type
             if (dataType == null || dataType.trim().isEmpty()) {
-                return false;
+                hasEmptyTypes = true;
+            } else if (!DataTypeConfig.isKnownType(dataType)) {
+                unknownTypesList.add(dataType);
+            }
+
+            // 檢查 Size 格式
+            if (!size.trim().isEmpty() && !size.matches("\\d+")) {
+                hasSizeError = true;
             }
         }
+
+        if (hasEmptyTypes) {
+            Messages.showErrorDialog("有欄位的數據類型為空，請填寫所有數據類型", "錯誤");
+            return null;
+        }
+
+        if (hasSizeError) {
+            Messages.showErrorDialog("Size欄位必須是數字，請修正後再試", "錯誤");
+            return null;
+        }
+
+        // 過濾掉已經警告過的類型
+        unknownTypesList.removeAll(warnedTypes);
+        return unknownTypesList;
+    }
+
+    // 修改原有的 validateDataTypes 方法
+    public boolean validateDataTypes() {
+        Set<String> unknownTypes = validateTypes();
+        if (unknownTypes == null) {
+            return false;
+        }
+        if (!unknownTypes.isEmpty()) {
+            warnedTypes.addAll(unknownTypes);
+        }
         return true;
+    }
+
+    public static class ValidationCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value,
+                boolean isSelected, boolean hasFocus,
+                int row, int column) {
+            Component c = super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+
+            DtoTableModel model = (DtoTableModel) table.getModel();
+            String cellValue = value != null ? value.toString().trim() : "";
+            String columnName = table.getColumnName(column);
+
+            if (columnName.equals("Data Type")) {
+                if (cellValue.isEmpty()) {
+                    setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                    setToolTipText("數據類型不能為空（必填）");
+                } else if (!DataTypeConfig.isKnownType(cellValue)) {
+                    setBorder(BorderFactory.createLineBorder(Color.ORANGE, 2));
+                    setToolTipText("未知的數據類型：" + cellValue + "（可能是新類型或輸入錯誤）");
+                } else {
+                    setBorder(null);
+                    setToolTipText(null);
+                }
+            } else if (columnName.equals("Size")) {
+                if (!cellValue.isEmpty() && !cellValue.matches("\\d+")) {
+                    setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                    setToolTipText("Size必須是數字");
+                    setBackground(new Color(255, 200, 200)); // 淺紅色背景
+                } else {
+                    setBorder(null);
+                    setToolTipText(null);
+                    setBackground(table.getBackground());
+                }
+            } else {
+                setBorder(null);
+                setToolTipText(null);
+                setBackground(table.getBackground());
+            }
+
+            return c;
+        }
     }
 }
