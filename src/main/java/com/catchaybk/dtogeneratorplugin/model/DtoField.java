@@ -76,7 +76,6 @@ public class DtoField {
     }
 
 
-
     public boolean isObject() {
         if (dataType == null) return false;
 
@@ -96,7 +95,6 @@ public class DtoField {
         // 處理其他類型
         return type.equals("Object") || (!isPrimitiveType(type) && !isList());
     }
-
 
 
     public String getCamelCaseName() {
@@ -129,6 +127,14 @@ public class DtoField {
         // 非 List 類型，直接返回格式化後的類型名
         return formatTypeName(dataType.trim());
     }
+
+    public String getCapitalizedName() {
+        if (dataName == null || dataName.isEmpty()) {
+            return "";
+        }
+        return dataName.substring(0, 1).toUpperCase() + dataName.substring(1);
+    }
+
 
     private String formatTypeName(String typeName) {
         // 基本類型的映射（保持正確的大小寫）

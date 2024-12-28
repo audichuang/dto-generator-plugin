@@ -218,7 +218,12 @@ public class DtoConfigDialog extends DialogWrapper {
 
     private String generateClassName(String msgId, String direction, String baseName, boolean isMainClass) {
         if (msgId == null || msgId.isEmpty() || direction.equals("無")) {
-            return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName) : baseName;
+            if (isMainClass) {
+                return baseName.isEmpty() ? "MainDTO" : baseName;
+            } else {
+                // 確保 baseName 首字母大寫
+                return capitalizeFirstLetter(baseName);
+            }
         }
 
         String suffix = direction.equals("上行") ? "Tranrq" : "Tranrs";
@@ -227,9 +232,19 @@ public class DtoConfigDialog extends DialogWrapper {
         if (isMainClass) {
             return prefix + suffix;
         } else {
-            return prefix + suffix + baseName;
+            // 確保 baseName 首字母大寫
+            return prefix + suffix + capitalizeFirstLetter(baseName);
         }
     }
+
+    // 添加一個輔助方法來處理首字母大寫
+    private String capitalizeFirstLetter(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
+    }
+
 
     public String getEffectiveId() {
         String direction = getMessageDirection();

@@ -321,11 +321,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
-        // 在顯示配置對話框前先驗證數據類型
         if (!validateDataTypes()) {
             return;
         }
-
 
         // 按層級收集自定義類型
         Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
@@ -341,7 +339,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
             if (tempField.isObject()) {
                 levelTypesMap
                         .computeIfAbsent(level, k -> new ArrayList<>())
-                        .add(dataName);
+                        .add(tempField.getCapitalizedName()); // 使用首字母大寫的版本
             }
         }
 
@@ -369,15 +367,28 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 for (String typeName : entry.getValue()) {
                     String className = configDialog.getClassName(typeName);
                     if (!className.isEmpty()) {
+                        // 存儲時使用原始的 dataName 作為鍵
+                        String originalDataName = findOriginalDataName(typeName);
                         levelClassNamesMap
                                 .computeIfAbsent(level, k -> new HashMap<>())
-                                .put(typeName, className);
+                                .put(originalDataName, className);
                     }
                 }
             }
 
             configurationDone = true;
         }
+    }
+
+    // 添加輔助方法來查找原始的 dataName
+    private String findOriginalDataName(String capitalizedName) {
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String dataName = tableModel.getValueAt(i, 1).toString();
+            if (dataName.equalsIgnoreCase(capitalizedName)) {
+                return dataName;
+            }
+        }
+        return capitalizedName;
     }
 
     public String getMessageDirectionComment() {
