@@ -1,14 +1,21 @@
 package com.catchaybk.dtogeneratorplugin.ui;
 
+import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.psi.PsiPackage;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +23,8 @@ import java.util.Map;
 public class DtoConfigDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
 
-    private JBTextField msgIdField; // 新增
+    private final Project project;
+    private JBTextField msgIdField;
     private JComboBox<String> messageDirectionComboBox;
     private JBTextField authorField;
     private JCheckBox rememberAuthorCheckBox;
@@ -29,27 +37,35 @@ public class DtoConfigDialog extends DialogWrapper {
     private String initialMsgId;
     private boolean initialJava17;
     private boolean isUpstream;
-    private JBTextField tranIdField; // 新增：用于输入电文ID
+    private JBTextField tranIdField;
     private JPanel tranIdPanel;
+    private TextFieldWithBrowseButton packageChooser;
+    private String initialPackage;
 
-
-    public DtoConfigDialog(String msgId, String author, String mainClassName, boolean isJava17,
-                           boolean isUpstream, // 新增參數
-                           Map<Integer, List<String>> levelTypesMap) {
+    public DtoConfigDialog(String msgId,
+                           String author,
+                           String mainClassName,
+                           boolean isJava17,
+                           boolean isUpstream,
+                           Map<Integer, List<String>> levelTypesMap,
+                           Project project,
+                           String initialPackage) {
         super(true);
+        this.project = project;
         this.initialMsgId = msgId;
         this.initialAuthor = author;
         this.initialMainClassName = mainClassName;
         this.initialJava17 = isJava17;
-        this.isUpstream = isUpstream; // 初始化
+        this.isUpstream = isUpstream;
         this.levelTypesMap = levelTypesMap;
+        this.initialPackage = initialPackage;
         init();
         setTitle("DTO Generator Configuration");
     }
 
+    @Nullable
     @Override
     protected JComponent createCenterPanel() {
-        // 主容器使用 BorderLayout
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBorder(JBUI.Borders.empty(10));
 
@@ -62,9 +78,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
         // 添加基本配置到頂部面板
         addBasicConfigurations(topPanel, topGbc, 0);
-        // 主類配置也放在頂部固定面板
-        mainClassField = new JBTextField(initialMainClassName);
-        addFormRow(topPanel, "主要類名:", mainClassField, topGbc, 6); // 基本配置後的下一行
+
         // 創建可滾動的類型配置面板
         JPanel typeConfigPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -72,54 +86,20 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.insets = JBUI.insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        int row = 0;
-        // 按層級添加類型配置
-        for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
-            int level = entry.getKey();
-            List<String> types = entry.getValue();
-
-            if (!types.isEmpty()) {
-                // 添加層級標題
-                JLabel levelLabel = new JLabel("第 " + level + " 層級類型配置");
-                levelLabel.setFont(levelLabel.getFont().deriveFont(Font.BOLD));
-                gbc.gridx = 0;
-                gbc.gridy = row++;
-                gbc.gridwidth = 2;
-                typeConfigPanel.add(levelLabel, gbc);
-                gbc.gridwidth = 1;
-
-                // 添加該層級的所有類型配置
-                for (String typeName : types) {
-                    JBTextField classNameField = new JBTextField();
-                    classNameFields.put(typeName, classNameField);
-                    addFormRow(typeConfigPanel, "  " + typeName + ":", classNameField, gbc, row++);
-                }
-
-                // 在每個層級後添加分隔符
-                if (level < Collections.max(levelTypesMap.keySet())) {
-                    addSeparator(typeConfigPanel, gbc, row++);
-                }
-            }
-        }
+        addTypeConfigurations(typeConfigPanel, gbc, 0);
 
         // 為類型配置面板添加額外的底部空間
         JPanel spacer = new JPanel();
         gbc.gridx = 0;
-        gbc.gridy = row;
+        gbc.gridy = levelTypesMap.size() + 1;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         typeConfigPanel.add(spacer, gbc);
 
-        // 創建滾動面板，只包含類型配置部分
+        // 創建滾動面板
         JBScrollPane scrollPane = new JBScrollPane(typeConfigPanel);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
-        // 設置首選大小
         scrollPane.setPreferredSize(new Dimension(450, 400));
 
-        // 將固定面板放在頂部，滾動面板放在中間
         contentPanel.add(topPanel, BorderLayout.NORTH);
         contentPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -129,8 +109,23 @@ public class DtoConfigDialog extends DialogWrapper {
     private void addBasicConfigurations(JPanel panel, GridBagConstraints gbc, int startRow) {
         int currentRow = startRow;
 
+        // 包選擇器
+        packageChooser = new TextFieldWithBrowseButton();
+        packageChooser.setText(initialPackage);
+        packageChooser.addActionListener(e -> {
+            PackageChooserDialog packageChooser = new PackageChooserDialog("Choose Target Package", project);
+            packageChooser.show();
+
+            PsiPackage selectedPackage = packageChooser.getSelectedPackage();
+            if (selectedPackage != null) {
+                this.packageChooser.setText(selectedPackage.getQualifiedName());
+            }
+        });
+        addFormRow(panel, "目標包路徑:", packageChooser, gbc, currentRow++);
+
         // MSGID 配置
         msgIdField = new JBTextField(initialMsgId);
+        msgIdField.getDocument().addDocumentListener(createDocumentListener());
         addFormRow(panel, "MSGID:", msgIdField, gbc, currentRow++);
 
         // 電文方向選擇
@@ -142,16 +137,11 @@ public class DtoConfigDialog extends DialogWrapper {
         });
         addFormRow(panel, "電文方向:", messageDirectionComboBox, gbc, currentRow++);
 
-        // 电文ID配置面板
+        // 電文ID配置面板
         tranIdPanel = new JPanel(new GridBagLayout());
         tranIdField = new JBTextField();
-        tranIdField.getDocument().addDocumentListener(new SimpleDocumentListener() {
-            @Override
-            public void textChanged(String newText) {
-                updateAllClassNames();
-            }
-        });
-        addFormRow(tranIdPanel, "上下行前綴:", tranIdField, gbc, 0);
+        tranIdField.getDocument().addDocumentListener(createDocumentListener());
+        addFormRow(tranIdPanel, "電文ID:", tranIdField, gbc, 0);
 
         gbc.gridx = 0;
         gbc.gridy = currentRow++;
@@ -168,7 +158,6 @@ public class DtoConfigDialog extends DialogWrapper {
         rememberAuthorCheckBox = new JCheckBox("記住作者", !initialAuthor.isEmpty());
         gbc.gridx = 1;
         gbc.gridy = currentRow++;
-        gbc.gridwidth = 1;
         panel.add(rememberAuthorCheckBox, gbc);
 
         // Java版本選擇
@@ -176,32 +165,30 @@ public class DtoConfigDialog extends DialogWrapper {
         javaVersionComboBox.setSelectedItem(initialJava17 ? "Java 17" : "Java 8");
         addFormRow(panel, "Java版本:", javaVersionComboBox, gbc, currentRow++);
 
-        // 添加分隔符
-        addSeparator(panel, gbc, currentRow++);
+        // 主類名配置
+        mainClassField = new JBTextField(initialMainClassName);
+        addFormRow(panel, "主類名:", mainClassField, gbc, currentRow++);
+
+        addSeparator(panel, gbc, currentRow);
     }
 
-
     private void addFormRow(JPanel panel, String labelText, JComponent field, GridBagConstraints gbc, int row) {
-        // 標籤
         JLabel label = new JLabel(labelText);
-        label.setPreferredSize(new Dimension(100, 30)); // 減小標籤寬度
+        label.setPreferredSize(new Dimension(100, 30));
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0.0;
-        gbc.fill = GridBagConstraints.NONE; // 標籤不需要填充
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
         panel.add(label, gbc);
 
-        // 輸入欄位
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL; // 輸入欄位水平填充
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         if (field instanceof JTextField) {
             field.setPreferredSize(new Dimension(300, 30));
         }
         panel.add(field, gbc);
     }
-
 
     private void addSeparator(JPanel panel, GridBagConstraints gbc, int row) {
         JSeparator separator = new JSeparator();
@@ -209,53 +196,14 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.gridy = row;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = JBUI.insets(10, 0, 10, 0); // 增加上下間距
+        gbc.insets = JBUI.insets(10, 0, 10, 0);
         panel.add(separator, gbc);
         gbc.gridwidth = 1;
-        gbc.insets = JBUI.insets(5, 5, 5, 5); // 恢復原始間距
+        gbc.insets = JBUI.insets(5, 5, 5, 5);
     }
-
-
-    private String generateClassName(String msgId, String direction, String baseName, boolean isMainClass) {
-        if (msgId == null || msgId.isEmpty() || direction.equals("無")) {
-            if (isMainClass) {
-                return baseName.isEmpty() ? "MainDTO" : baseName;
-            } else {
-                // 確保 baseName 首字母大寫
-                return capitalizeFirstLetter(baseName);
-            }
-        }
-
-        String suffix = direction.equals("上行") ? "Tranrq" : "Tranrs";
-        String prefix = msgId.toUpperCase();
-
-        if (isMainClass) {
-            return prefix + suffix;
-        } else {
-            // 確保 baseName 首字母大寫
-            return prefix + suffix + capitalizeFirstLetter(baseName);
-        }
-    }
-
-    // 添加一個輔助方法來處理首字母大寫
-    private String capitalizeFirstLetter(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
-        return input.substring(0, 1).toUpperCase() + input.substring(1);
-    }
-
-
-    public String getEffectiveId() {
-        String direction = getMessageDirection();
-        if ("無".equals(direction)) {
-            return msgIdField.getText().trim();
-        }
-        return tranIdField.getText().trim();
-    }
-
 
     private void addTypeConfigurations(JPanel panel, GridBagConstraints gbc, int startRow) {
+        int row = startRow;
         for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
             int level = entry.getKey();
             List<String> types = entry.getValue();
@@ -264,69 +212,50 @@ public class DtoConfigDialog extends DialogWrapper {
                 JLabel levelLabel = new JLabel("第 " + level + " 層級類型配置");
                 levelLabel.setFont(levelLabel.getFont().deriveFont(Font.BOLD));
                 gbc.gridx = 0;
-                gbc.gridy = startRow++;
+                gbc.gridy = row++;
                 gbc.gridwidth = 2;
                 panel.add(levelLabel, gbc);
                 gbc.gridwidth = 1;
 
                 for (String typeName : types) {
                     JBTextField classNameField = new JBTextField();
-                    classNameField.setEditable(false); // 設為只讀，因為會自動生成
                     classNameFields.put(typeName, classNameField);
-                    addFormRow(panel, "  " + typeName + ":", classNameField, gbc, startRow++);
+                    addFormRow(panel, "  " + typeName + ":", classNameField, gbc, row++);
                 }
+
+                addSeparator(panel, gbc, row++);
             }
         }
     }
 
-    // 添加一個簡單的 DocumentListener 實現
-    private interface SimpleDocumentListener extends javax.swing.event.DocumentListener {
-        void textChanged(String newText);
-
-        @Override
-        default void insertUpdate(javax.swing.event.DocumentEvent e) {
-            try {
-                textChanged(e.getDocument().getText(0, e.getDocument().getLength()));
-            } catch (Exception ex) {
-                ex.printStackTrace();
+    private DocumentListener createDocumentListener() {
+        return new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateAllClassNames();
             }
-        }
 
-        @Override
-        default void removeUpdate(javax.swing.event.DocumentEvent e) {
-            try {
-                textChanged(e.getDocument().getText(0, e.getDocument().getLength()));
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateAllClassNames();
             }
-        }
 
-        @Override
-        default void changedUpdate(javax.swing.event.DocumentEvent e) {
-            try {
-                textChanged(e.getDocument().getText(0, e.getDocument().getLength()));
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateAllClassNames();
             }
-        }
+        };
     }
-
 
     private void updateAllClassNames() {
         String direction = (String) messageDirectionComboBox.getSelectedItem();
-        String effectiveId;
+        String effectiveId = getEffectiveId();
 
-        if ("無".equals(direction)) {
-            effectiveId = msgIdField.getText().trim();
-        } else {
-            effectiveId = tranIdField.getText().trim();
-        }
-
-        // 更新主类名
+        // 更新主類名
         String mainClassName = generateClassName(effectiveId, direction, "", true);
         mainClassField.setText(mainClassName);
 
-        // 更新所有子类名
+        // 更新所有子類名
         for (Map.Entry<String, JBTextField> entry : classNameFields.entrySet()) {
             String baseName = entry.getKey();
             String newClassName = generateClassName(effectiveId, direction, baseName, false);
@@ -334,6 +263,22 @@ public class DtoConfigDialog extends DialogWrapper {
         }
     }
 
+    private String generateClassName(String msgId, String direction, String baseName, boolean isMainClass) {
+        if (msgId == null || msgId.isEmpty() || "無".equals(direction)) {
+            return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName) : capitalizeFirstLetter(baseName);
+        }
+
+        String suffix = "上行".equals(direction) ? "Tranrq" : "Tranrs";
+        String prefix = msgId.toUpperCase();
+        return isMainClass ? prefix + suffix : prefix + suffix + capitalizeFirstLetter(baseName);
+    }
+
+    private String capitalizeFirstLetter(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
+    }
 
     private void updateTranIdVisibility() {
         String direction = (String) messageDirectionComboBox.getSelectedItem();
@@ -341,17 +286,18 @@ public class DtoConfigDialog extends DialogWrapper {
         tranIdPanel.setVisible(showTranId);
 
         if (!showTranId) {
-            tranIdField.setText(""); // 清空电文ID
+            tranIdField.setText("");
         } else if (tranIdField.getText().isEmpty() && msgIdField.getText() != null) {
-            // 如果电文ID为空且原始ID存在，则复制原始ID
             tranIdField.setText(msgIdField.getText());
         }
 
-        // 触发面板重新布局
         tranIdPanel.revalidate();
         tranIdPanel.repaint();
     }
 
+    public String getTargetPackage() {
+        return packageChooser.getText().trim();
+    }
 
     public String getMsgId() {
         return msgIdField.getText().trim();
@@ -361,16 +307,12 @@ public class DtoConfigDialog extends DialogWrapper {
         return authorField.getText().trim();
     }
 
-    public boolean isRememberAuthor() {
-        return rememberAuthorCheckBox.isSelected();
+    public String getMainClassName() {
+        return mainClassField.getText().trim();
     }
 
     public boolean isJava17() {
         return "Java 17".equals(javaVersionComboBox.getSelectedItem());
-    }
-
-    public String getMainClassName() {
-        return mainClassField.getText().trim();
     }
 
     public String getClassName(String typeName) {
@@ -378,16 +320,10 @@ public class DtoConfigDialog extends DialogWrapper {
         return field != null ? field.getText().trim() : "";
     }
 
-    private String getInitialMessageDirection() {
-
-        return "無"; // 默認選擇"無"
+    public String getMessageDirection() {
+        return (String) messageDirectionComboBox.getSelectedItem();
     }
 
-    /**
-     * 獲取電文方向的註解文字
-     *
-     * @return 如果選擇"無"則返回空字符串,否則返回對應的電文方向說明
-     */
     public String getMessageDirectionComment() {
         String direction = getMessageDirection();
         switch (direction) {
@@ -400,14 +336,26 @@ public class DtoConfigDialog extends DialogWrapper {
         }
     }
 
-    public String getMessageDirection() {
-        return (String) messageDirectionComboBox.getSelectedItem();
+    private String getInitialMessageDirection() {
+        return "無";
     }
 
+    private String getEffectiveId() {
+        String direction = getMessageDirection();
+        return "無".equals(direction) ? msgIdField.getText().trim() : tranIdField.getText().trim();
+    }
+
+    @Override
+    protected ValidationInfo doValidate() {
+        if (mainClassField.getText().trim().isEmpty()) {
+            return new ValidationInfo("Main class name cannot be empty", mainClassField);
+        }
+        return null;
+    }
 
     @Override
     protected void doOKAction() {
-        if (isRememberAuthor()) {
+        if (rememberAuthorCheckBox.isSelected()) {
             PropertiesComponent.getInstance().setValue(REMEMBERED_AUTHOR_KEY, getAuthor());
         } else {
             PropertiesComponent.getInstance().unsetValue(REMEMBERED_AUTHOR_KEY);

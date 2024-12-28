@@ -9,23 +9,33 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.fileTypes.StdFileTypes;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileFactory;
-import com.intellij.psi.PsiJavaFile;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 public class GenerateDTOAction extends AnAction {
+
+    private String targetPackage;
+
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
         if (project == null) return;
 
-        DtoGeneratorDialog dialog = new DtoGeneratorDialog();
+        // 獲取當前文件所在的包路徑
+        PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
+        String defaultPackage = "dto";
+        if (currentFile instanceof PsiJavaFile) {
+            String currentPackage = ((PsiJavaFile) currentFile).getPackageName();
+            defaultPackage = currentPackage + ".dto";
+        }
+
+        DtoGeneratorDialog dialog = new DtoGeneratorDialog(project);
         if (dialog.showAndGet()) {
             List<DtoField> dtoFields = dialog.getDtoFields();
             String mainClassName = dialog.getMainClassName();
@@ -35,20 +45,76 @@ public class GenerateDTOAction extends AnAction {
             String messageDirectionComment = dialog.getMessageDirectionComment();
             Map<Integer, Map<String, String>> levelClassNamesMap = dialog.getLevelClassNamesMap();
 
-            PsiFile currentFile = e.getData(CommonDataKeys.PSI_FILE);
-            PsiDirectory directory = currentFile != null ? currentFile.getContainingDirectory() : null;
+            // 使用用戶在對話框中選擇的包名，而不是默認值
+            String targetPackage = dialog.getTargetPackage();
 
-            if (directory == null) return;
+            // 創建或獲取目標目錄
+            PsiDirectory targetDirectory = createPackageDirectories(project, currentFile, targetPackage);
+            if (targetDirectory == null) {
+                Messages.showErrorDialog(project, "無法創建目標包路徑", "錯誤");
+                return;
+            }
 
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 try {
-                    generateDtoClasses(project, directory, dtoFields, mainClassName, author, msgId, messageDirectionComment, levelClassNamesMap, isJava17);
+                    generateDtoClasses(project, targetDirectory, dtoFields, mainClassName,
+                            author, msgId, messageDirectionComment, levelClassNamesMap, isJava17);
                 } catch (Exception ex) {
                     Messages.showErrorDialog(project, "Error generating DTOs: " + ex.getMessage(), "Error");
                 }
             });
         }
     }
+
+    private PsiDirectory createPackageDirectories(Project project, PsiFile currentFile, String packageName) {
+        try {
+            PsiManager psiManager = PsiManager.getInstance(project);
+
+            // 獲取源代碼根目錄
+            VirtualFile sourceRoot = null;
+            if (currentFile != null) {
+                sourceRoot = ProjectRootManager.getInstance(project)
+                        .getFileIndex()
+                        .getSourceRootForFile(currentFile.getVirtualFile());
+            }
+
+            if (sourceRoot == null) {
+                // 如果找不到當前文件的源根，使用項目的第一個源根
+                VirtualFile[] roots = ProjectRootManager.getInstance(project).getContentSourceRoots();
+                if (roots.length > 0) {
+                    sourceRoot = roots[0];
+                }
+            }
+
+            if (sourceRoot == null) {
+                return null;
+            }
+
+            // 創建包路徑
+            PsiDirectory directory = psiManager.findDirectory(sourceRoot);
+            if (directory == null) {
+                return null;
+            }
+
+            // 保存包名以供後續使用
+            this.targetPackage = packageName;
+
+            // 按照包路徑創建目錄
+            for (String pkg : packageName.split("\\.")) {
+                PsiDirectory subDir = directory.findSubdirectory(pkg);
+                if (subDir == null) {
+                    directory = directory.createSubdirectory(pkg);
+                } else {
+                    directory = subDir;
+                }
+            }
+
+            return directory;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 
     private void generateDtoClasses(Project project, PsiDirectory directory,
                                     List<DtoField> allFields, String mainClassName,
@@ -218,9 +284,14 @@ public class GenerateDTOAction extends AnAction {
         }
     }
 
-    private String generateDtoClass(String className, List<DtoField> fields, String author, String msgId, String messageDirectionComment, boolean isJava17) {
+    private String generateDtoClass(String className, List<DtoField> fields, String author,
+                                    String msgId, String messageDirectionComment, boolean isJava17) {
         StringBuilder sb = new StringBuilder();
-        sb.append("package com.example.dto;\n\n");
+        // 使用配置的包路徑
+        String packageName = targetPackage;
+        if (packageName != null && !packageName.isEmpty()) {
+            sb.append("package ").append(packageName).append(";\n\n");
+        }
 
         // 添加導入
         Set<String> imports = new HashSet<>();
