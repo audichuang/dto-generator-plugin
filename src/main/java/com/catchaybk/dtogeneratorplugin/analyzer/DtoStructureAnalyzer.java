@@ -2,13 +2,19 @@ package com.catchaybk.dtogeneratorplugin.analyzer;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DtoStructureAnalyzer {
     private final List<DtoField> fields;
+    private boolean isJava17;
 
-    public DtoStructureAnalyzer(List<DtoField> fields) {
+    public DtoStructureAnalyzer(List<DtoField> fields, boolean isJava17) {
         this.fields = fields;
+        this.isJava17 = isJava17;
     }
 
     public Map<Integer, List<DtoStructure>> analyze() {
@@ -99,5 +105,21 @@ public class DtoStructureAnalyzer {
                 .add(new DtoStructure(level, parentField, new ArrayList<>(fields)));
     }
 
-    // ... 其他輔助方法
+    private boolean isSimpleType(String type) {
+        DtoField tempField = new DtoField(0, "", type, "", false, "", isJava17);
+        return false;
+    }
+
+    private void updateSimpleListDataType(DtoField field) {
+        String genericType = extractGenericType(field.getDataType());
+        DtoField tempField = new DtoField(0, "", genericType, "", false, "", isJava17);
+    }
+
+    private String extractGenericType(String dataType) {
+        if (dataType.startsWith("List<") && dataType.endsWith(">")) {
+            return dataType.substring(5, dataType.length() - 1).trim();
+        }
+        return dataType;
+    }
+
 }

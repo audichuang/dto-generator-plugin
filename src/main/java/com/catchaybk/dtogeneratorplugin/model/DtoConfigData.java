@@ -15,7 +15,7 @@ public class DtoConfigData {
     private final Map<String, String> classNames;
 
     public DtoConfigData(String targetPackage, String msgId, String author,
-            boolean isJava17, String messageDirection, Map<String, String> classNames) {
+                         boolean isJava17, String messageDirection, Map<String, String> classNames) {
         this.targetPackage = targetPackage;
         this.msgId = msgId;
         this.author = author;

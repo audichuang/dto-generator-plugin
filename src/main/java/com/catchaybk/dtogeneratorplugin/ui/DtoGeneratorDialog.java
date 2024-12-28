@@ -43,7 +43,8 @@ public class DtoGeneratorDialog extends DialogWrapper {
     public DtoGeneratorDialog(Project project) {
         super(true);
         this.project = project;
-        this.tableModel = new DtoTableModel();
+        this.isJava17 = false;
+        this.tableModel = new DtoTableModel(isJava17);
         this.table = createTable();
 
         init();
@@ -193,6 +194,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
         author = configDialog.getAuthor();
         mainClassName = configDialog.getMainClassName();
         isJava17 = configDialog.isJava17();
+
+        // 更新 TableModel 的 Java 版本設置
+        tableModel.updateJavaVersion(isJava17);
 
         // 更新類名映射
         levelClassNamesMap.clear();

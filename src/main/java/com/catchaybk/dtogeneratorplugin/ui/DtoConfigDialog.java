@@ -1,5 +1,9 @@
 package com.catchaybk.dtogeneratorplugin.ui;
 
+import com.catchaybk.dtogeneratorplugin.generator.DtoNameGenerator;
+import com.catchaybk.dtogeneratorplugin.model.DtoConfigData;
+import com.catchaybk.dtogeneratorplugin.ui.factory.DtoConfigPanelFactory;
+import com.catchaybk.dtogeneratorplugin.validator.DtoConfigValidator;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
@@ -20,11 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.catchaybk.dtogeneratorplugin.generator.DtoNameGenerator;
-import com.catchaybk.dtogeneratorplugin.model.DtoConfigData;
-import com.catchaybk.dtogeneratorplugin.ui.factory.DtoConfigPanelFactory;
-import com.catchaybk.dtogeneratorplugin.validator.DtoConfigValidator;
-
 /**
  * DTO配置對話框
  * 用於配置DTO生成的相關參數，包括：
@@ -36,8 +35,8 @@ public class DtoConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
-    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
+    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
+    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
     private static final int LABEL_WIDTH = 100;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 450;
@@ -53,8 +52,8 @@ public class DtoConfigDialog extends DialogWrapper {
     private final Map<Integer, List<String>> levelTypesMap;
 
     public DtoConfigDialog(String msgId, String author, String mainClassName,
-            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-            Project project, String initialPackage) {
+                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+                           Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -123,7 +122,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                boolean isJava17, boolean isUpstream, String initialPackage) {
+                   boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;
@@ -161,7 +160,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 創建默認的GridBagConstraints
-     * 
+     *
      * @return 配置好的GridBagConstraints實例
      */
     private GridBagConstraints createDefaultConstraints() {
@@ -174,7 +173,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加底部填充空間
-     * 
+     *
      * @param panel 要添加空間的面板
      * @param gbc   GridBag約束
      */
@@ -189,7 +188,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加表單行
-     * 
+     *
      * @param panel     目標面板
      * @param labelText 標籤文本
      * @param field     輸入組件
@@ -216,7 +215,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加分隔線
-     * 
+     *
      * @param panel 目標面板
      * @param gbc   GridBag約束
      * @param row   行號
@@ -235,7 +234,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 創建帶有文檔監聽器的文本框
-     * 
+     *
      * @param initialText 初始文本
      * @return 配置好的文本框
      */
@@ -247,7 +246,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 顯示包選擇器對話框
-     * 
+     *
      * @param packageChooser 包選擇器組件
      */
     private void showPackageChooserDialog(TextFieldWithBrowseButton packageChooser) {
@@ -266,7 +265,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加電文ID面板
-     * 
+     *
      * @param panel 目標面板
      * @param gbc   GridBag約束
      * @param row   行號
@@ -283,7 +282,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加作者配置區域
-     * 
+     *
      * @param panel 目標面板
      * @param gbc   GridBag約束
      * @param row   行號
@@ -297,7 +296,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 添加版本和主類配置區域
-     * 
+     *
      * @param panel 目標面板
      * @param gbc   GridBag約束
      * @param row   行號
@@ -310,7 +309,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 創建文檔變更監聽器
-     * 
+     *
      * @return 文檔監聽器實例
      */
     private DocumentListener createDocumentListener() {
@@ -356,7 +355,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 生成類名
-     * 
+     *
      * @param msgId       消息ID
      * @param direction   電文方向
      * @param baseName    基礎名稱
@@ -375,7 +374,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 首字母大寫
-     * 
+     *
      * @param input 輸入字符串
      * @return 首字母大寫後的字符串
      */
@@ -413,7 +412,7 @@ public class DtoConfigDialog extends DialogWrapper {
      * "B2E-ADHNQ001 哈哈哈" -> "ADHNQ001"
      * "ADHNQ001 測試" -> "ADHNQ001"
      * "XXX-YYY 說明" -> "YYY"
-     * 
+     *
      * @param msgId 原始的MSGID
      * @return 提取出的電文ID
      */
@@ -444,7 +443,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 獲取有效的ID
-     * 
+     *
      * @return 根據當前電文方向返回應的ID
      */
     private String getEffectiveId() {
@@ -490,7 +489,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 獲取當前所有類名的映射
-     * 
+     *
      * @return 類名映射表，key為類型名，value為對應的類名
      */
     private Map<String, String> getCurrentClassNames() {

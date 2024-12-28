@@ -3,7 +3,9 @@ package com.catchaybk.dtogeneratorplugin;
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.ui.ValidationMessageSettingDialog;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * DTO類生成器
@@ -48,7 +50,6 @@ public class DtoClassGenerator {
 
         String validationPackage = config.isJava17 ? "jakarta.validation" : "javax.validation";
 
-        // 先檢查所有字段，收集需要的驗證註解
         for (DtoField field : fields) {
             // 添加字段本身需要的導入
             imports.addAll(field.getRequiredImports());
@@ -64,6 +65,11 @@ public class DtoClassGenerator {
             // 對於String類型且有大小限制的字段
             if (field.getDataType().toLowerCase().contains("string") && !field.getSize().isEmpty()) {
                 imports.add(validationPackage + ".constraints.Size");
+            }
+
+            // 對於decimal類型且有大小限制的字段
+            if ((field.getDataType().toLowerCase().contains("decimal")) && !field.getSize().isEmpty()) {
+                imports.add(validationPackage + ".constraints.Digits");
             }
 
             // 對於對象類型或包含對象的List
@@ -132,7 +138,22 @@ public class DtoClassGenerator {
 
         sb.append("    @JsonProperty(\"").append(field.getOriginalName()).append("\")\n");
 
-        if (field.getDataType().toLowerCase().contains("string") && !field.getSize().isEmpty()) {
+        String lowerType = field.getDataType().toLowerCase();
+        // 對於 decimal 和 bigdecimal 類型且有 size 的字段
+        if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal"))
+                && !field.getSize().isEmpty()) {
+            String[] parts = field.getSize().split(",");
+            String integer = parts[0];
+            String fraction = parts.length > 1 ? parts[1] : "0";
+
+            sb.append("    @Digits(integer = ").append(integer)
+                    .append(", fraction = ").append(fraction)
+                    .append(", message = \"")
+                    .append(ValidationMessageSettingDialog.getDigitsMessage(
+                            field.getCamelCaseName(), field.getComments(), field.getSize()))
+                    .append("\")\n");
+        } else if (field.getDataType().toLowerCase().contains("string")
+                && !field.getSize().isEmpty()) {
             sb.append("    @Size(max = ").append(field.getSize())
                     .append(", message = \"")
                     .append(ValidationMessageSettingDialog.getSizeMessage(

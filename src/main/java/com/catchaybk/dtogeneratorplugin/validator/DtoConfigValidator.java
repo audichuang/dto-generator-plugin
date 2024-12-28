@@ -2,6 +2,7 @@ package com.catchaybk.dtogeneratorplugin.validator;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoConfigData;
 import com.intellij.openapi.ui.ValidationInfo;
+
 import javax.swing.*;
 
 /**
@@ -11,7 +12,7 @@ import javax.swing.*;
 public class DtoConfigValidator {
     /**
      * 驗證配置是否有效
-     * 
+     *
      * @param config         配置數據
      * @param mainClassField 主類名輸入框組件
      * @return 驗證結果，null表示驗證通過

@@ -2,6 +2,7 @@ package com.catchaybk.dtogeneratorplugin.ui.factory;
 
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
@@ -33,7 +34,7 @@ public class DtoConfigPanelFactory {
      * 創建類型配置面板
      */
     public static JPanel createTypeConfigPanel(Map<Integer, List<String>> levelTypesMap,
-            Map<String, JBTextField> classNameFields) {
+                                               Map<String, JBTextField> classNameFields) {
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = createDefaultConstraints();
         int row = 0;
@@ -57,7 +58,7 @@ public class DtoConfigPanelFactory {
     }
 
     private static void addFormRow(JPanel panel, String labelText, JComponent field,
-            GridBagConstraints gbc, int row) {
+                                   GridBagConstraints gbc, int row) {
         JLabel label = new JLabel(labelText);
         label.setPreferredSize(new Dimension(LABEL_WIDTH, FIELD_HEIGHT));
         gbc.gridx = 0;
@@ -76,7 +77,7 @@ public class DtoConfigPanelFactory {
     }
 
     private static int addLevelConfiguration(JPanel panel, GridBagConstraints gbc,
-            int startRow, int level, List<String> types, Map<String, JBTextField> classNameFields) {
+                                             int startRow, int level, List<String> types, Map<String, JBTextField> classNameFields) {
         int row = startRow;
 
         addLevelHeader(panel, gbc, row++, level);

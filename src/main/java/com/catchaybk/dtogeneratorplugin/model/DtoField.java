@@ -18,9 +18,9 @@ public class DtoField {
     private boolean isObject;
     private String requiredString;
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
+    private final boolean isJava17;
 
     static {
-        // 添加 Timestamp 的支持
         TYPE_IMPORT_MAP.put("Timestamp", "java.sql.Timestamp");
         TYPE_IMPORT_MAP.put("BigDecimal", "java.math.BigDecimal");
         TYPE_IMPORT_MAP.put("LocalDate", "java.time.LocalDate");
@@ -29,13 +29,15 @@ public class DtoField {
         TYPE_IMPORT_MAP.put("List", "java.util.List");
     }
 
-    public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments) {
+    public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments,
+            boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;
         this.size = size;
         this.required = required;
         this.comments = comments;
+        this.isJava17 = isJava17;
         this.isObject = !isPrimitiveType(dataType);
     }
 
@@ -54,7 +56,6 @@ public class DtoField {
     }
 
     public boolean isPrimitiveOrWrapperType(String type) {
-        // 創建一個不區分大小寫的比較集合
         Set<String> primitiveAndWrapperTypes = new HashSet<>(Arrays.asList(
                 "string", "String",
                 "int", "integer", "Integer",
@@ -64,19 +65,17 @@ public class DtoField {
                 "boolean", "Boolean",
                 "date", "Date",
                 "datetime", "DateTime",
-                "timestamp", "Timestamp", // 添加 Timestamp 支持
+                "timestamp", "Timestamp",
                 "bigdecimal", "BigDecimal",
+                "decimal", "BigDecimal",
                 "char", "Character",
                 "byte", "Byte",
                 "short", "Short",
                 "void", "Void",
-                "decimal", "Decimal",
-                "number", "Number",
                 "LocalDate",
                 "LocalDateTime"));
 
-        // 使用原始類型進行比較，而不是轉換為小寫
-        return primitiveAndWrapperTypes.contains(type);
+        return primitiveAndWrapperTypes.contains(type.toLowerCase());
     }
 
     public boolean isList() {
@@ -121,30 +120,10 @@ public class DtoField {
     }
 
     public String getFormattedDataType() {
-        if (dataType == null)
-            return "";
-
-        // 如果是 List 類型，需要特別處理
-        if (dataType.trim().toLowerCase().startsWith("list<")) {
-            int start = dataType.indexOf('<');
-            int end = dataType.lastIndexOf('>');
-            if (start >= 0 && end >= 0) {
-                String genericType = dataType.substring(start + 1, end).trim();
-                // 確保泛型參數使用正確的大小寫
-                String formattedGenericType = formatTypeName(genericType);
-                return "List<" + formattedGenericType + ">";
-            }
+        if (childClassName != null) {
+            return isList() ? "List<" + childClassName + ">" : childClassName;
         }
-
-        // 非 List 類型，直接返回格式化後的類型名
-        return formatTypeName(dataType.trim());
-    }
-
-    public String getCapitalizedName() {
-        if (dataName == null || dataName.isEmpty()) {
-            return "";
-        }
-        return dataName.substring(0, 1).toUpperCase() + dataName.substring(1);
+        return formatTypeName(dataType);
     }
 
     private String formatTypeName(String typeName) {
@@ -152,10 +131,7 @@ public class DtoField {
             return typeName;
         }
 
-        // 將輸入轉換為小寫以進行比較
         String lowercaseType = typeName.toLowerCase().trim();
-
-        // 基本類型的標準化映射
         Map<String, String> typeMapping = new HashMap<>();
         typeMapping.put("string", "String");
         typeMapping.put("integer", "Integer");
@@ -166,43 +142,48 @@ public class DtoField {
         typeMapping.put("boolean", "Boolean");
         typeMapping.put("date", "Date");
         typeMapping.put("datetime", "LocalDateTime");
-        typeMapping.put("timestamp", "Timestamp"); // 添加 Timestamp 映射
+        typeMapping.put("timestamp", "Timestamp");
         typeMapping.put("bigdecimal", "BigDecimal");
         typeMapping.put("decimal", "BigDecimal");
         typeMapping.put("char", "Character");
         typeMapping.put("byte", "Byte");
         typeMapping.put("short", "Short");
         typeMapping.put("void", "Void");
-        typeMapping.put("number", "BigDecimal");
         typeMapping.put("localdate", "LocalDate");
         typeMapping.put("localdatetime", "LocalDateTime");
 
-        // 返回標準格式的類型名
         return typeMapping.getOrDefault(lowercaseType, typeName);
+    }
+
+    public String getCapitalizedName() {
+        if (dataName == null || dataName.isEmpty()) {
+            return "";
+        }
+        return dataName.substring(0, 1).toUpperCase() + dataName.substring(1);
     }
 
     public Set<String> getRequiredImports() {
         Set<String> imports = new HashSet<>();
-        String formattedType = getFormattedDataType();
-
-        // 處理泛型類型
-        if (formattedType.toLowerCase().startsWith("list<")) {
-            imports.add("java.util.List");
-
-            // 提取泛型參數
-            String genericType = formattedType.substring(5, formattedType.length() - 1).trim();
-            String genericImport = TYPE_IMPORT_MAP.get(formatTypeName(genericType));
-            if (genericImport != null) {
-                imports.add(genericImport);
+        if (dataType != null) {
+            String lowerType = dataType.toLowerCase();
+            if (lowerType.startsWith("list")) {
+                imports.add("java.util.List");
+            } else if (lowerType.contains("date")) {
+                imports.add("java.util.Date");
+            } else if (lowerType.contains("timestamp")) {
+                imports.add("java.sql.Timestamp");
+            } else if (lowerType.equals("bigdecimal") || lowerType.equals("decimal")) {
+                imports.add("java.math.BigDecimal");
             }
-        } else {
-            // 處理普通類型
-            String typeImport = TYPE_IMPORT_MAP.get(formatTypeName(formattedType));
-            if (typeImport != null) {
-                imports.add(typeImport);
+
+            // 如果有 size 格式，添加 Digits 註解
+            if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal"))
+                    && !size.isEmpty()) {
+                // 根據 Java 版本選擇正確的包
+                String validationPackage = isJava17 ? "jakarta.validation.constraints" : "javax.validation.constraints";
+                imports.add(validationPackage + ".Digits");
             }
         }
-
         return imports;
     }
 

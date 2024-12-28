@@ -1,6 +1,7 @@
 package com.catchaybk.dtogeneratorplugin;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
+
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +16,8 @@ public class UserConfig {
     public final String targetPackage;
 
     public UserConfig(List<DtoField> dtoFields, String mainClassName, String author,
-            String msgId, boolean isJava17, String messageDirectionComment,
-            Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage) {
+                      String msgId, boolean isJava17, String messageDirectionComment,
+                      Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage) {
         this.dtoFields = dtoFields;
         this.mainClassName = mainClassName;
         this.author = author;

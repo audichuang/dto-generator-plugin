@@ -15,9 +15,11 @@ public class DtoTableModel extends DefaultTableModel {
     private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
+    private boolean isJava17;
 
-    public DtoTableModel() {
+    public DtoTableModel(boolean isJava17) {
         super(COLUMN_NAMES, 0);
+        this.isJava17 = isJava17;
     }
 
     public void addEmptyRow() {
@@ -127,14 +129,14 @@ public class DtoTableModel extends DefaultTableModel {
         String comments = getValueAt(row, 5).toString();
 
         DtoField field = new DtoField(level, dataName, dataType, size,
-                "Y".equalsIgnoreCase(requiredStr), comments);
+                "Y".equalsIgnoreCase(requiredStr), comments, isJava17);
         field.setRequiredString(requiredStr);
         return field;
     }
 
     /**
      * 驗證所有數據類型和Size格式
-     * 
+     *
      * @return null 如果有錯誤，否則返回未知類型的集合
      */
     public Set<String> validateTypes() {
@@ -158,7 +160,7 @@ public class DtoTableModel extends DefaultTableModel {
             }
 
             // 檢查 Size 格式
-            if (!size.trim().isEmpty() && !size.matches("\\d+")) {
+            if (!isValidSizeFormat(size, dataType)) {
                 hasSizeError = true;
             }
         }
@@ -215,10 +217,14 @@ public class DtoTableModel extends DefaultTableModel {
                     setToolTipText(null);
                 }
             } else if (columnName.equals("Size")) {
-                if (!cellValue.isEmpty() && !cellValue.matches("\\d+")) {
+                // 獲取當前行的 Data Type
+                String dataType = (String) table.getValueAt(row,
+                        Arrays.asList(COLUMN_NAMES).indexOf("Data Type"));
+
+                if (!cellValue.isEmpty() && !model.isValidSizeFormat(cellValue, dataType)) {
                     setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-                    setToolTipText("Size必須是數字");
-                    setBackground(new Color(255, 200, 200)); // 淺紅色背景
+                    setToolTipText("Size格式不正確");
+                    setBackground(new Color(255, 200, 200));
                 } else {
                     setBorder(null);
                     setToolTipText(null);
@@ -232,5 +238,23 @@ public class DtoTableModel extends DefaultTableModel {
 
             return c;
         }
+    }
+
+    private boolean isValidSizeFormat(String size, String dataType) {
+        if (size == null || size.trim().isEmpty()) {
+            return true;
+        }
+
+        String lowerType = dataType.toLowerCase();
+        // 對於 decimal 類型，允許 "整數位,小數位" 格式
+        if (lowerType.equals("decimal") || lowerType.equals("bigdecimal")) {
+            return size.matches("\\d+") || size.matches("\\d+,\\d+");
+        }
+        // 其他類型只允許純數字
+        return size.matches("\\d+");
+    }
+
+    public void updateJavaVersion(boolean isJava17) {
+        this.isJava17 = isJava17;
     }
 }

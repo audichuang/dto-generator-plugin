@@ -3,7 +3,6 @@ package com.catchaybk.dtogeneratorplugin.ui;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,10 +11,12 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
     private static final String NOTBLANK_KEY = "dto.generator.validation.notblank";
     private static final String NOTNULL_KEY = "dto.generator.validation.notnull";
     private static final String SIZE_KEY = "dto.generator.validation.size";
+    private static final String DIGITS_KEY = "dto.generator.validation.digits";
 
     private final JBTextField notBlankField;
     private final JBTextField notNullField;
     private final JBTextField sizeField;
+    private final JBTextField digitsField;
 
     public ValidationMessageSettingDialog() {
         super(true);
@@ -24,6 +25,8 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         notBlankField = new JBTextField(props.getValue(NOTBLANK_KEY, "${name} 不得為空"));
         notNullField = new JBTextField(props.getValue(NOTNULL_KEY, "${name} 為必填"));
         sizeField = new JBTextField(props.getValue(SIZE_KEY, "${name} 長度不得超過${max}"));
+        digitsField = new JBTextField(props.getValue(DIGITS_KEY,
+                "${name}格式不正確，整數位最多${integer}位，小數位最多${fraction}位"));
 
         init();
         setTitle("驗證消息設置");
@@ -62,17 +65,28 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         gbc.weightx = 1.0;
         panel.add(sizeField, gbc);
 
-        // 提示說明
+        // Digits消息
         gbc.gridx = 0;
         gbc.gridy = 3;
+        gbc.weightx = 0.0;
+        panel.add(new JLabel("Digits消息:"), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        panel.add(digitsField, gbc);
+
+        // 提示說明
+        gbc.gridx = 0;
+        gbc.gridy = 4;
         gbc.gridwidth = 2;
         panel.add(new JLabel("<html>可用的變量：<br>" +
                 "${name} - 屬性名稱<br>" +
                 "${comment} - 註解說明<br>" +
-                "${max} - 最大長度（僅用於Size）<br><br>" +
+                "${max} - 最大長度（僅用於Size）<br>" +
+                "${integer} - 整數位數（僅用於Digits）<br>" +
+                "${fraction} - 小數位數（僅用於Digits）<br>" +
                 "範例：<br>" +
                 "${name}(${comment}) 不得為空<br>" +
-                "${comment}不得為空 (${name})</html>"), gbc);
+                "${comment}格式不正確，整數位最多${integer}位，小數位最多${fraction}位</html>"), gbc);
 
         return panel;
     }
@@ -103,5 +117,19 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         return template.replace("${name}", propertyName)
                 .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
                 .replace("${max}", max);
+    }
+
+    public static String getDigitsMessage(String propertyName, String comment, String size) {
+        String template = PropertiesComponent.getInstance().getValue(DIGITS_KEY,
+                "${name}格式不正確，整數位最多${integer}位，小數位最多${fraction}位");
+
+        String[] parts = size.split(",");
+        String integer = parts[0];
+        String fraction = parts.length > 1 ? parts[1] : "0";
+
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
+                .replace("${integer}", integer)
+                .replace("${fraction}", fraction);
     }
 }

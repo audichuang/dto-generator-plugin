@@ -7,7 +7,7 @@ package com.catchaybk.dtogeneratorplugin.generator;
 public class DtoNameGenerator {
     /**
      * 生成DTO類名
-     * 
+     *
      * @param msgId       消息ID
      * @param direction   電文方向
      * @param baseName    基礎名稱
@@ -15,7 +15,7 @@ public class DtoNameGenerator {
      * @return 生成的類名
      */
     public static String generateClassName(String msgId, String direction,
-            String baseName, boolean isMainClass) {
+                                           String baseName, boolean isMainClass) {
         if (msgId == null || msgId.isEmpty() || "無".equals(direction)) {
             return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName)
                     : capitalizeFirstLetter(baseName);

@@ -20,6 +20,11 @@ public class DataTypeConfig {
                 "short",
                 "void");
 
+        // 數字類型
+        addTypes(
+                "decimal", // Decimal 類型
+                "bigdecimal"); // BigDecimal 類型
+
         // 日期時間類型
         addTypes(
                 "date",
@@ -30,9 +35,6 @@ public class DataTypeConfig {
 
         // 其他常用類型
         addTypes(
-                "bigdecimal",
-                "decimal",
-                "number",
                 "list",
                 "object");
     }

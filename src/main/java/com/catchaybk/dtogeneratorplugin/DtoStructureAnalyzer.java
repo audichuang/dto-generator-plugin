@@ -180,7 +180,7 @@ public class DtoStructureAnalyzer {
         simpleTypes.addAll(Arrays.asList(
                 "BigDecimal", "BigInteger", "Date", "LocalDate", "LocalDateTime"));
 
-        DtoField tempField = new DtoField(0, "", type, "", false, "");
+        DtoField tempField = new DtoField(0, "", type, "", false, "", false);
         String formattedType = tempField.getFormattedDataType();
 
         return simpleTypes.contains(formattedType);
@@ -188,7 +188,7 @@ public class DtoStructureAnalyzer {
 
     private void updateSimpleListDataType(DtoField field) {
         String genericType = extractGenericType(field.getDataType());
-        DtoField tempField = new DtoField(0, "", genericType, "", false, "");
+        DtoField tempField = new DtoField(0, "", genericType, "", false, "", false);
         String formattedType = tempField.getFormattedDataType();
         field.setDataType("List<" + formattedType + ">");
     }

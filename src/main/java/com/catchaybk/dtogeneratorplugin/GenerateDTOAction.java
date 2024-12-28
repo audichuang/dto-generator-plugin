@@ -1,6 +1,5 @@
 package com.catchaybk.dtogeneratorplugin;
 
-import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
 import com.catchaybk.dtogeneratorplugin.ui.DtoGeneratorDialog;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -15,8 +14,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.*;
 
 public class GenerateDTOAction extends AnAction {
     private String targetPackage;
@@ -114,7 +111,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-            DtoStructure structure, UserConfig config) {
+                                    DtoStructure structure, UserConfig config) {
         String classContent = new DtoClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
 
@@ -127,7 +124,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,
-            String className, String classContent) {
+                                 String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 
