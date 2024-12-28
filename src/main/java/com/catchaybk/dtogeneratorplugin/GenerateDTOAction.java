@@ -2,7 +2,6 @@ package com.catchaybk.dtogeneratorplugin;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
-import com.catchaybk.dtogeneratorplugin.ui.DtoConfigDialog;
 import com.catchaybk.dtogeneratorplugin.ui.DtoGeneratorDialog;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -239,12 +238,25 @@ public class GenerateDTOAction extends AnAction {
             imports.add("javax.validation.constraints.Size");
         }
 
-        // 檢查是否需要List導入
-        if (fields.stream().anyMatch(f -> f.isList())) {
-            imports.add("java.util.List");
+//        // 檢查是否需要List導入
+//        if (fields.stream().anyMatch(f -> f.isList())) {
+//            imports.add("java.util.List");
+//        }
+//
+//        // 添加所有導入
+//        List<String> sortedImports = new ArrayList<>(imports);
+//        Collections.sort(sortedImports);
+//        for (String imp : sortedImports) {
+//            sb.append("import ").append(imp).append(";\n");
+//        }
+//        sb.append("\n");
+
+        // 收集所有字段需要的導入
+        for (DtoField field : fields) {
+            imports.addAll(field.getRequiredImports());
         }
 
-        // 添加所有導入
+        // 按字母順序排序並添加導入語句
         List<String> sortedImports = new ArrayList<>(imports);
         Collections.sort(sortedImports);
         for (String imp : sortedImports) {

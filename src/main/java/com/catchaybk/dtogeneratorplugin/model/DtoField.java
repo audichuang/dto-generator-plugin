@@ -15,7 +15,18 @@ public class DtoField {
     private boolean nullable;
     private String comments;
     private String childClassName;
-    private boolean isObject; // 標記是否為自定義對象類型
+    private boolean isObject;
+    private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
+
+    static {
+        // 初始化類型的導入路徑映射
+        TYPE_IMPORT_MAP.put("BigDecimal", "java.math.BigDecimal");
+        TYPE_IMPORT_MAP.put("LocalDate", "java.time.LocalDate");
+        TYPE_IMPORT_MAP.put("LocalDateTime", "java.time.LocalDateTime");
+        TYPE_IMPORT_MAP.put("Date", "java.util.Date");
+        TYPE_IMPORT_MAP.put("List", "java.util.List");
+    }
+
 
     public DtoField(int level, String dataName, String dataType, String size, boolean nullable, String comments) {
         this.level = level;
@@ -113,7 +124,7 @@ public class DtoField {
         if (dataType == null) return "";
 
         // 如果是 List 類型，需要特別處理
-        if (dataType.trim().startsWith("List<")) {
+        if (dataType.trim().toLowerCase().startsWith("list<")) {
             int start = dataType.indexOf('<');
             int end = dataType.lastIndexOf('>');
             if (start >= 0 && end >= 0) {
@@ -128,6 +139,7 @@ public class DtoField {
         return formatTypeName(dataType.trim());
     }
 
+
     public String getCapitalizedName() {
         if (dataName == null || dataName.isEmpty()) {
             return "";
@@ -135,36 +147,63 @@ public class DtoField {
         return dataName.substring(0, 1).toUpperCase() + dataName.substring(1);
     }
 
-
     private String formatTypeName(String typeName) {
-        // 基本類型的映射（保持正確的大小寫）
+        if (typeName == null || typeName.isEmpty()) {
+            return typeName;
+        }
+
+        // 將輸入轉換為小寫以進行比較
+        String lowercaseType = typeName.toLowerCase().trim();
+
+        // 基本類型的標準化映射
         Map<String, String> typeMapping = new HashMap<>();
         typeMapping.put("string", "String");
         typeMapping.put("integer", "Integer");
+        typeMapping.put("int", "Integer");
         typeMapping.put("long", "Long");
         typeMapping.put("double", "Double");
         typeMapping.put("float", "Float");
         typeMapping.put("boolean", "Boolean");
         typeMapping.put("date", "Date");
-        typeMapping.put("datetime", "DateTime");
+        typeMapping.put("datetime", "LocalDateTime");
         typeMapping.put("bigdecimal", "BigDecimal");
+        typeMapping.put("decimal", "BigDecimal");
         typeMapping.put("char", "Character");
         typeMapping.put("byte", "Byte");
         typeMapping.put("short", "Short");
         typeMapping.put("void", "Void");
-        typeMapping.put("decimal", "Decimal");
-        typeMapping.put("number", "Number");
+        typeMapping.put("number", "BigDecimal");
         typeMapping.put("localdate", "LocalDate");
         typeMapping.put("localdatetime", "LocalDateTime");
 
-        // 檢查是否有對應的標準格式
-        String lowercaseType = typeName.toLowerCase();
-        if (typeMapping.containsKey(lowercaseType)) {
-            return typeMapping.get(lowercaseType);
+        // 返回標準格式的類型名
+        return typeMapping.getOrDefault(lowercaseType, typeName);
+    }
+
+    public Set<String> getRequiredImports() {
+        Set<String> imports = new HashSet<>();
+        String formattedType = getFormattedDataType();
+
+        // 處理泛型類型
+        if (formattedType.toLowerCase().startsWith("list<")) {
+            imports.add("java.util.List");
+
+            // 提取泛型參數
+            String genericType = formattedType.substring(5, formattedType.length() - 1).trim();
+            String genericImport = TYPE_IMPORT_MAP.get(formatTypeName(genericType));
+            if (genericImport != null) {
+                imports.add(genericImport);
+            }
+        } else {
+            // 處理普通類型
+            String typeImport = TYPE_IMPORT_MAP.get(formatTypeName(formattedType));
+            if (typeImport != null) {
+                imports.add(typeImport);
+            }
         }
 
-        // 如果不是標準類型，保持原樣
-        return typeName;
+        return imports;
     }
+
 
 }
