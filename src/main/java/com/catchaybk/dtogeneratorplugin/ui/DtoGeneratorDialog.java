@@ -1,33 +1,27 @@
 package com.catchaybk.dtogeneratorplugin.ui;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
-import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
 import com.catchaybk.dtogeneratorplugin.ui.model.DtoTableModel;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.table.JBTable;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.event.ActionListener;
-import java.util.List;
-import java.util.Map;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.TreeMap;
-import java.util.HashMap;
-import java.awt.*;
-import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.table.JBTable;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.event.ActionListener;
+import java.util.List;
+import java.util.*;
 
 public class DtoGeneratorDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
@@ -111,10 +105,15 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     private void handlePaste() {
         try {
+            int oldRowCount = tableModel.getRowCount();
             String clipboardData = (String) Toolkit.getDefaultToolkit()
                     .getSystemClipboard().getData(DataFlavor.stringFlavor);
             tableModel.processClipboardData(clipboardData);
-            showConfigurationReminder();
+
+            // 只有在行數增加時才顯示提示
+            if (tableModel.getRowCount() > oldRowCount) {
+                showConfigurationReminder();
+            }
         } catch (Exception ex) {
             Messages.showErrorDialog(project, "粘貼數據時發生錯誤: " + ex.getMessage(), "錯誤");
         }
@@ -269,7 +268,27 @@ public class DtoGeneratorDialog extends DialogWrapper {
             Messages.showErrorDialog(project, "請填寫所有欄位的數據類型", "錯誤");
             return;
         }
+
+        int totalClasses = countTotalClasses();
         super.doOKAction();
+
+        // 顯示創建完成的通知
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup("DTO Generator Notifications")
+                .createNotification(
+                        "DTO生成完成",
+                        String.format("已成功生成 %d 個Class", totalClasses),
+                        NotificationType.INFORMATION)
+                .notify(project);
+    }
+
+    private int countTotalClasses() {
+        // 計算主類和所有子類的總數
+        int count = 1; // 主類
+        for (Map<String, String> levelMap : levelClassNamesMap.values()) {
+            count += levelMap.size();
+        }
+        return count;
     }
 
     // Getters
