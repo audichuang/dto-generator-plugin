@@ -340,11 +340,12 @@ public class DtoConfigDialog extends DialogWrapper {
         String direction = (String) ui.directionComboBox.getSelectedItem();
         String effectiveId = getEffectiveId();
 
-        // 使用 DtoNameGenerator 生成類名
+        // 更新主類名
         String mainClassName = DtoNameGenerator.generateClassName(
                 effectiveId, direction, "", true);
         ui.mainClassField.setText(mainClassName);
 
+        // 更新所有子類名
         for (Map.Entry<String, JBTextField> entry : classNameFields.entrySet()) {
             String baseName = entry.getKey();
             String newClassName = DtoNameGenerator.generateClassName(
@@ -444,7 +445,7 @@ public class DtoConfigDialog extends DialogWrapper {
     /**
      * 獲取有效的ID
      * 
-     * @return 根據當前電文方向返回對應的ID
+     * @return 根據當前電文方向返回應的ID
      */
     private String getEffectiveId() {
         String direction = (String) ui.directionComboBox.getSelectedItem();
@@ -501,6 +502,23 @@ public class DtoConfigDialog extends DialogWrapper {
         return names;
     }
 
+    public Map<Integer, Map<String, String>> getLevelClassNamesMap() {
+        Map<Integer, Map<String, String>> result = new HashMap<>();
+        for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
+            Map<String, String> classNames = new HashMap<>();
+            for (String typeName : entry.getValue()) {
+                String className = getClassName(typeName);
+                if (!className.isEmpty()) {
+                    classNames.put(typeName, className);
+                }
+            }
+            if (!classNames.isEmpty()) {
+                result.put(entry.getKey(), classNames);
+            }
+        }
+        return result;
+    }
+
     /**
      * UI組件類
      * 集中管理所有UI組件，提高代碼的組織性和可維護性
@@ -551,5 +569,9 @@ public class DtoConfigDialog extends DialogWrapper {
             box.setSelectedItem(config.isJava17 ? "Java 17" : "Java 8");
             return box;
         }
+    }
+
+    public boolean isRememberAuthor() {
+        return ui.rememberAuthorBox.isSelected();
     }
 }

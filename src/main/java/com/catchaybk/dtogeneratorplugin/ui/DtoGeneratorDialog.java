@@ -2,254 +2,246 @@ package com.catchaybk.dtogeneratorplugin.ui;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoField;
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
+import com.catchaybk.dtogeneratorplugin.ui.model.DtoTableModel;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiManager;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.event.ActionListener;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.TreeMap;
+import java.util.HashMap;
+import java.awt.*;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.openapi.vfs.VirtualFile;
 
 public class DtoGeneratorDialog extends DialogWrapper {
-    private JBTable table;
-    private DefaultTableModel tableModel;
+    private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
+
+    private final DtoTableModel tableModel;
+    private final JBTable table;
+    private final Project project;
+    private DtoConfigDialog configDialog;
+    private boolean configurationDone = false;
+
+    // Configuration state
     private Map<Integer, Map<String, String>> levelClassNamesMap = new HashMap<>();
     private String author;
-    private boolean configurationDone = false;
-    private JCheckBox rememberAuthorCheckBox;
-    private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private String mainClassName = "MainDTO"; // 添加字段
+    private String mainClassName = "MainDTO";
     private boolean isJava17;
     private String msgId;
     private boolean isUpstream = true;
-    private DtoConfigDialog configDialog;
-    private Project project;
-
-
-    public String getMsgId() {
-        return msgId;
-    }
-
-    public void setMsgId(String msgId) {
-        this.msgId = msgId;
-    }
-
-    public boolean isJava17() {
-        return isJava17;
-    }
-
-    public void setJava17(boolean java17) {
-        isJava17 = java17;
-    }
 
     public DtoGeneratorDialog(Project project) {
         super(true);
         this.project = project;
-        initializeTable();
+        this.tableModel = new DtoTableModel();
+        this.table = createTable();
+
         init();
         setTitle("DTO Generator");
         loadRememberedAuthor();
     }
 
+    private JBTable createTable() {
+        JBTable table = new JBTable(tableModel);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        table.setDragEnabled(false);
+        table.getTableHeader().setReorderingAllowed(false);
 
-    public String getTargetPackage() {
-        return configDialog != null ? configDialog.getTargetPackage() : "dto";
+        // 註冊快捷鍵
+        registerPasteAction(table);
+        return table;
     }
 
-
-    private void initializeTable() {
-        String[] columnNames = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
-        tableModel = new DefaultTableModel(columnNames, 0);
-        table = new JBTable(tableModel);
-        // 設置自定義的單元格渲染器
-        table.getColumnModel().getColumn(2).setCellRenderer(new ValidationCellRenderer());
-
-    }
-
-    @Nullable
     @Override
     protected JComponent createCenterPanel() {
         JPanel dialogPanel = new JPanel(new BorderLayout());
-
-        // 原有的表格部分
-        JBScrollPane scrollPane = new JBScrollPane(table);
-        dialogPanel.add(scrollPane, BorderLayout.CENTER);
-
-        // 原有的按鈕面板
-        JPanel buttonPanel = new JPanel();
-        JButton addRowButton = new JButton("Add Row");
-        JButton removeRowButton = new JButton("Remove Row");
-        JButton pasteButton = new JButton("Paste");
-        JButton configButton = new JButton("Configure");
-
-        addRowButton.addActionListener(e -> addRow());
-        removeRowButton.addActionListener(e -> removeSelectedRows());
-        pasteButton.addActionListener(e -> handlePaste());
-        configButton.addActionListener(e -> showConfigDialog());
-
-        buttonPanel.add(addRowButton);
-        buttonPanel.add(removeRowButton);
-        buttonPanel.add(pasteButton);
-        buttonPanel.add(configButton);
-        dialogPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // 註冊快捷鍵
-        registerPasteAction();
-
+        dialogPanel.add(createTablePanel(), BorderLayout.CENTER);
+        dialogPanel.add(createButtonPanel(), BorderLayout.SOUTH);
         dialogPanel.setPreferredSize(new Dimension(800, 400));
         return dialogPanel;
     }
 
+    private JComponent createTablePanel() {
+        return new JBScrollPane(table);
+    }
 
-    private void registerPasteAction() {
+    private JPanel createButtonPanel() {
+        JPanel buttonPanel = new JPanel();
+        addButtons(buttonPanel);
+        return buttonPanel;
+    }
+
+    private void addButtons(JPanel panel) {
+        createAndAddButton(panel, "Add Row", e -> tableModel.addEmptyRow());
+        createAndAddButton(panel, "Remove Row", e -> removeSelectedRows());
+        createAndAddButton(panel, "Paste", e -> handlePaste());
+        createAndAddButton(panel, "Configure", e -> showConfigDialog());
+    }
+
+    private void createAndAddButton(JPanel panel, String text, ActionListener listener) {
+        JButton button = new JButton(text);
+        button.addActionListener(listener);
+        panel.add(button);
+    }
+
+    private void registerPasteAction(JBTable table) {
         KeyStroke paste = KeyStroke.getKeyStroke("control V");
         table.registerKeyboardAction(
                 e -> handlePaste(),
                 "Paste",
                 paste,
-                JComponent.WHEN_FOCUSED
-        );
-    }
-
-    private void loadRememberedAuthor() {
-        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-        author = propertiesComponent.getValue(REMEMBERED_AUTHOR_KEY, "");
+                JComponent.WHEN_FOCUSED);
     }
 
     private void handlePaste() {
         try {
             String clipboardData = (String) Toolkit.getDefaultToolkit()
                     .getSystemClipboard().getData(DataFlavor.stringFlavor);
-
-            // 首先按行分割
-            String[] rows = clipboardData.split("\n");
-            for (String row : rows) {
-                processRow(row.trim());
-            }
+            tableModel.processClipboardData(clipboardData);
             showConfigurationReminder();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Messages.showErrorDialog(project, "粘貼數據時發生錯誤: " + ex.getMessage(), "錯誤");
         }
     }
 
-    private void processRow(String row) {
-        if (row.isEmpty()) return;
+    private void removeSelectedRows() {
+        int[] selectedRows = table.getSelectedRows();
+        Arrays.sort(selectedRows);
+        for (int i = selectedRows.length - 1; i >= 0; i--) {
+            tableModel.removeRow(selectedRows[i]);
+        }
+    }
 
-        String[] columns = new String[6];
-        Arrays.fill(columns, ""); // 初始化為空字符串
-
-        // 檢查是否是狀態說明行（以數字加冒號開始）
-        if (row.matches("^\\d+:\\s+.*")) {
-            // 將狀態說明添加到前一行的註釋中
-            int lastRow = tableModel.getRowCount() - 1;
-            if (lastRow >= 0) {
-                String currentComment = (String) tableModel.getValueAt(lastRow, 5);
-                String newComment = currentComment + "\n" + row.trim();
-                tableModel.setValueAt(newComment, lastRow, 5);
-            }
+    private void showConfigDialog() {
+        if (tableModel.getRowCount() == 0) {
+            Messages.showWarningDialog(project, "請先添加數據再進行配置", "警告");
             return;
         }
 
-        // 使用固定位置的方式處理
-        String[] parts = row.split("\\t|(?:  +)");
-        int currentColumn = 0;
-        StringBuilder comment = new StringBuilder();
-        boolean isComment = false;
-
-        for (String part : parts) {
-            if (part.trim().isEmpty()) continue;
-
-            if (isComment || currentColumn > 4) {
-                // 已經到註釋部分
-                if (comment.length() > 0) comment.append(" ");
-                comment.append(part.trim());
-                isComment = true;
-            } else {
-                // 特殊處理第3列（Size）
-                if (currentColumn == 3) {
-                    String trimmedPart = part.trim();
-                    // 檢查是否是有效的 Size 值（數字）
-                    if (trimmedPart.matches("\\d+")) {
-                        columns[currentColumn] = trimmedPart;
-                        currentColumn++;
-                    } else {
-                        // 如果不是有效的 Size 值，則視為註釋的開始
-                        if (comment.length() > 0) comment.append(" ");
-                        comment.append(part.trim());
-                        isComment = true;
-                    }
-                }
-                // 特殊處理第4列（Required）
-                else if (currentColumn == 4) {
-                    String trimmedPart = part.trim();
-                    // 檢查是否是有效的 Required 值（Y、N、-） 值（Y、N、-）
-                    if (trimmedPart.matches("[YN-]")) {
-                        columns[currentColumn] = trimmedPart;
-                        currentColumn++;
-                    } else {
-                        // 如果不是有效的 Required 值，則視為註釋的開始
-                        if (comment.length() > 0) comment.append(" ");
-                        comment.append(part.trim());
-                        isComment = true;
-                    }
-                } else {
-                    columns[currentColumn] = part.trim();
-                    currentColumn++;
-                }
-            }
+        if (!tableModel.validateDataTypes()) {
+            Messages.showErrorDialog(project, "請填寫所有欄位的數據類型", "錯誤");
+            return;
         }
 
-        // 設置註釋
-        if (comment.length() > 0) {
-            columns[5] = comment.toString().trim();
-        }
-
-        // 只有在必要欄位存在時才添加行
-        if (!columns[0].isEmpty() && !columns[1].isEmpty()) {
-            tableModel.addRow(columns);
+        configDialog = createConfigDialog();
+        if (configDialog.showAndGet()) {
+            updateConfigurationFromDialog();
+            configurationDone = true;
         }
     }
 
+    private DtoConfigDialog createConfigDialog() {
+        return new DtoConfigDialog(
+                msgId,
+                author,
+                mainClassName,
+                isJava17,
+                isUpstream,
+                collectLevelTypes(),
+                project,
+                getCurrentPackage());
+    }
 
-    private void addTableRow(String[] cells) {
+    private void updateConfigurationFromDialog() {
+        if (configDialog == null) {
+            return;
+        }
+
+        // 更新基本配置
+        msgId = configDialog.getMsgId();
+        author = configDialog.getAuthor();
+        mainClassName = configDialog.getMainClassName();
+        isJava17 = configDialog.isJava17();
+
+        // 更新類名映射
+        levelClassNamesMap.clear();
+        Map<Integer, List<DtoField>> fieldsByLevel = groupFieldsByLevel(tableModel.getDtoFields());
+
+        for (Map.Entry<Integer, List<DtoField>> entry : fieldsByLevel.entrySet()) {
+            Map<String, String> levelMap = new HashMap<>();
+            for (DtoField field : entry.getValue()) {
+                if (field.isObject()) {
+                    // 使用配置對話框中的類名
+                    String className = configDialog.getClassName(field.getCapitalizedName());
+                    if (!className.isEmpty()) {
+                        levelMap.put(field.getDataName(), className);
+                    }
+                }
+            }
+            if (!levelMap.isEmpty()) {
+                levelClassNamesMap.put(entry.getKey(), levelMap);
+            }
+        }
+
+        // 保存作者信息（如果需要）
+        if (configDialog.isRememberAuthor()) {
+            PropertiesComponent.getInstance().setValue(REMEMBERED_AUTHOR_KEY, author);
+        }
+    }
+
+    private Map<Integer, List<DtoField>> groupFieldsByLevel(List<DtoField> fields) {
+        Map<Integer, List<DtoField>> result = new HashMap<>();
+        for (DtoField field : fields) {
+            result.computeIfAbsent(field.getLevel(), k -> new ArrayList<>()).add(field);
+        }
+        return result;
+    }
+
+    private Map<Integer, List<String>> collectLevelTypes() {
+        Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
+        List<DtoField> fields = tableModel.getDtoFields();
+
+        for (DtoField field : fields) {
+            if (field.isObject()) {
+                levelTypesMap
+                        .computeIfAbsent(field.getLevel(), k -> new ArrayList<>())
+                        .add(field.getCapitalizedName());
+            }
+        }
+        return levelTypesMap;
+    }
+
+    private String getCurrentPackage() {
         try {
-            String level = cells[0];
-            String dataName = cells[1];
-            String dataType = cells[2];
-            String size = cells[3];
-            String required = cells[4];
-            String comments = cells.length > 5 ? cells[5].trim() : "";
+            VirtualFile currentFile = FileEditorManager.getInstance(project).getSelectedFiles()[0];
+            PsiFile psiFile = PsiManager.getInstance(project).findFile(currentFile);
 
-            // 驗證數據
-            if (level.matches("\\d+") && !dataName.isEmpty()) {
-                // 對於 List<Object> 這樣的類型，保持原樣
-                tableModel.addRow(new Object[]{
-                        level,
-                        dataName,
-                        dataType,
-                        size,
-                        required,
-                        comments
-                });
+            if (psiFile instanceof PsiJavaFile) {
+                PsiJavaFile javaFile = (PsiJavaFile) psiFile;
+                String basePackage = javaFile.getPackageName();
+                VirtualFile baseDir = currentFile.getParent();
+
+                // 檢查是否存在 dto 子目錄
+                VirtualFile dtoDir = baseDir.findChild("dto");
+                if (dtoDir != null && dtoDir.isDirectory()) {
+                    // 如果存在 dto 目錄，返回完整的 dto 包路徑
+                    return basePackage + ".dto";
+                } else {
+                    // 如果不存在 dto 目錄，返回當前包路徑
+                    return basePackage;
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // 如果發生錯誤，返回空字符串或默認包名
+            return "";
         }
+        return "";
     }
 
     private void showConfigurationReminder() {
@@ -258,303 +250,31 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 .createNotification(
                         "DTO數據已導入",
                         "請點擊 'Configure' 按鈕設置類名和作者信息",
-                        NotificationType.INFORMATION
-                )
-                .notify(null);
+                        NotificationType.INFORMATION)
+                .notify(project);
     }
 
-    private Map<Integer, List<DtoStructure>> analyzeDtoStructure() {
-        Map<Integer, List<DtoStructure>> structures = new HashMap<>();
-        List<DtoField> fields = getDtoFields();
-
-        // 主層級（Level 0）的欄位
-        List<DtoField> mainFields = new ArrayList<>();
-        // SupList 層級（Level 1）的欄位
-        List<DtoField> supListFields = new ArrayList<>();
-        // SubSeqnoList 層級（Level 2）的欄位
-        List<DtoField> subSeqnoListFields = new ArrayList<>();
-
-        boolean inSupList = false;
-        boolean inSubSeqnoList = false;
-        String currentParentField = null;
-
-        for (DtoField field : fields) {
-            if (field.getDataName().equals("SupList") && field.getDataType().contains("List")) {
-                // 開始 SupList 區域
-                if (!mainFields.isEmpty()) {
-                    addStructure(structures, 0, null, new ArrayList<>(mainFields));
-                }
-                inSupList = true;
-                currentParentField = "SupList";
-                mainFields.add(field);
-                continue;
-            }
-
-            if (field.getDataName().equals("SubSeqnoList") && field.getDataType().contains("List")) {
-                // 開始 SubSeqnoList 區域
-                if (!supListFields.isEmpty()) {
-                    addStructure(structures, 1, currentParentField, new ArrayList<>(supListFields));
-                    supListFields.clear();
-                }
-                inSubSeqnoList = true;
-                supListFields.add(field);
-                continue;
-            }
-
-            // 根據當前狀態將欄位添加到相應的集合中
-            if (inSubSeqnoList) {
-                subSeqnoListFields.add(field);
-            } else if (inSupList) {
-                supListFields.add(field);
-            } else {
-                mainFields.add(field);
-            }
-        }
-
-        // 處理剩餘的欄位
-        if (!mainFields.isEmpty()) {
-            addStructure(structures, 0, null, mainFields);
-        }
-        if (!supListFields.isEmpty()) {
-            addStructure(structures, 1, "SupList", supListFields);
-        }
-        if (!subSeqnoListFields.isEmpty()) {
-            addStructure(structures, 2, "SubSeqnoList", subSeqnoListFields);
-        }
-
-        return structures;
-    }
-
-    private void addStructure(Map<Integer, List<DtoStructure>> structures,
-                              int level, String parentField, List<DtoField> fields) {
-        structures.computeIfAbsent(level, k -> new ArrayList<>())
-                .add(new DtoStructure(level, parentField, new ArrayList<>(fields)));
-    }
-
-    private void showConfigDialog() {
-        if (tableModel.getRowCount() == 0) {
-            Messages.showWarningDialog("請先添加數據再進行配置", "警告");
-            return;
-        }
-
-        if (!validateDataTypes()) {
-            return;
-        }
-
-        // 按層級收集自定義類型
-        Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String dataName = tableModel.getValueAt(i, 1).toString();
-            String dataType = tableModel.getValueAt(i, 2).toString();
-            int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
-
-            // 創建一個臨時的 DtoField 來使用其類型判斷邏輯
-            DtoField tempField = new DtoField(level, dataName, dataType, "", true, "");
-
-            // 只有當字段是對象類型或是非基本類型的列表時才需要配置
-            if (tempField.isObject()) {
-                levelTypesMap
-                        .computeIfAbsent(level, k -> new ArrayList<>())
-                        .add(tempField.getCapitalizedName()); // 使用首字母大寫的版本
-            }
-        }
-
-        // 獲取當前文件的包路徑
-        String currentPackage = "";
-        VirtualFile currentFile = FileEditorManager.getInstance(project).getSelectedFiles()[0];
-        PsiFile psiFile = PsiManager.getInstance(project).findFile(currentFile);
-        if (psiFile instanceof PsiJavaFile) {
-            PsiJavaFile javaFile = (PsiJavaFile) psiFile;
-            String basePackage = javaFile.getPackageName();
-
-            // 檢查當前包下是否存在 dto 包
-            PsiManager psiManager = PsiManager.getInstance(project);
-            VirtualFile baseDir = currentFile.getParent();
-            VirtualFile dtoDir = baseDir.findChild("dto");
-
-            if (dtoDir != null && dtoDir.isDirectory()) {
-                // 如果存在 dto 目錄，使用完整的 dto 包路徑
-                currentPackage = basePackage + ".dto";
-            } else {
-                // 如果不存在 dto 目錄，使用基礎包路徑
-                currentPackage = basePackage;
-            }
-        }
-
-
-        // 創建配置對話框
-        configDialog = new DtoConfigDialog(
-                msgId,
-                author,
-                mainClassName,
-                isJava17,
-                isUpstream,
-                levelTypesMap,
-                project,
-                currentPackage // 使用處理後的包路徑
-        );
-
-        if (configDialog.showAndGet()) {
-            // 獲取基本配置
-            msgId = configDialog.getMsgId();
-            author = configDialog.getAuthor();
-            mainClassName = configDialog.getMainClassName();
-            isJava17 = configDialog.isJava17();
-
-            // 獲取所有自定義類型的類名配置
-            levelClassNamesMap.clear();
-            for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
-                int level = entry.getKey();
-                for (String typeName : entry.getValue()) {
-                    String className = configDialog.getClassName(typeName);
-                    if (!className.isEmpty()) {
-                        // 存儲時使用原始的 dataName 作為鍵
-                        String originalDataName = findOriginalDataName(typeName);
-                        levelClassNamesMap
-                                .computeIfAbsent(level, k -> new HashMap<>())
-                                .put(originalDataName, className);
-                    }
-                }
-            }
-
-            configurationDone = true;
-        }
-    }
-
-    // 添加輔助方法來查找原始的 dataName
-    private String findOriginalDataName(String capitalizedName) {
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String dataName = tableModel.getValueAt(i, 1).toString();
-            if (dataName.equalsIgnoreCase(capitalizedName)) {
-                return dataName;
-            }
-        }
-        return capitalizedName;
-    }
-
-    public String getMessageDirectionComment() {
-        return configDialog != null ? configDialog.getMessageDirectionComment() : "";
-    }
-
-    private boolean validateDataTypes() {
-        DefaultTableModel model = (DefaultTableModel) table.getModel();
-        boolean hasError = false;
-
-        // 遍歷所有行檢查數據類型
-        for (int i = 0; i < model.getRowCount(); i++) {
-            String dataType = (String) model.getValueAt(i, 2);
-            if (dataType == null || dataType.trim().isEmpty()) {
-                hasError = true;
-            }
-        }
-
-        // 強制表格重繪以更新單元格背景色
-        table.repaint();
-
-        if (hasError) {
-            Messages.showErrorDialog(
-                    "請填寫所有欄位的數據類型",
-                    "數據類型缺失"
-            );
-            return false;
-        }
-
-        return true;
-    }
-
-
-    // 輔助方法：獲取類型的層級
-    private int getTypeLevel(String typeName) {
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            if (tableModel.getValueAt(i, 1).toString().equals(typeName)) {
-                return Integer.parseInt(tableModel.getValueAt(i, 0).toString());
-            }
-        }
-        return 0;
-    }
-
-    private int calculateMaxLevel() {
-        boolean hasSupList = false;
-        boolean hasSubSeqnoList = false;
-
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String dataName = tableModel.getValueAt(i, 1).toString();
-            String dataType = tableModel.getValueAt(i, 2).toString();
-
-            if (dataName.equals("SupList") && dataType.contains("List")) {
-                hasSupList = true;
-            } else if (dataName.equals("SubSeqnoList") && dataType.contains("List")) {
-                hasSubSeqnoList = true;
-            }
-        }
-
-        if (hasSubSeqnoList) return 2;
-        if (hasSupList) return 1;
-        return 0;
-    }
-
-
-    // 輔助方法：判斷是否為原始類型
-    private boolean isPrimitiveType(String type) {
-        if (type == null) return false;
-        Set<String> primitiveTypes = new HashSet<>(Arrays.asList(
-                "string", "int", "integer", "long", "double", "float",
-                "boolean", "date", "datetime", "bigdecimal", "char",
-                "byte", "short", "void", "decimal"
-        ));
-        return primitiveTypes.contains(type.toLowerCase());
-    }
-
-    private void addRow() {
-        tableModel.addRow(new Object[]{"", "", "", "", "", ""});
-    }
-
-    private void removeSelectedRows() {
-        int[] selectedRows = table.getSelectedRows();
-        for (int i = selectedRows.length - 1; i >= 0; i--) {
-            tableModel.removeRow(selectedRows[i]);
-        }
-    }
-
-    public List<DtoField> getDtoFields() {
-        List<DtoField> fields = new ArrayList<>();
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            try {
-                int level = Integer.parseInt(tableModel.getValueAt(i, 0).toString());
-                String dataName = tableModel.getValueAt(i, 1).toString();
-                String dataType = tableModel.getValueAt(i, 2).toString();
-                String size = tableModel.getValueAt(i, 3).toString();
-                String requiredStr = tableModel.getValueAt(i, 4).toString().trim(); // 獲取 Required 欄位值
-                boolean required = "Y".equalsIgnoreCase(requiredStr); // 只有 Y 才是必填
-                String comments = tableModel.getValueAt(i, 5).toString();
-
-                DtoField field = new DtoField(level, dataName, dataType, size, required, comments);
-                field.setRequiredString(requiredStr); // 設置原始的 required 字符串
-                fields.add(field);
-            } catch (Exception e) {
-                // 跳過無效的行
-                continue;
-            }
-        }
-        return fields;
+    private void loadRememberedAuthor() {
+        author = PropertiesComponent.getInstance().getValue(REMEMBERED_AUTHOR_KEY, "");
     }
 
     @Override
     protected void doOKAction() {
         if (!configurationDone) {
-            Messages.showWarningDialog("請先完成配置", "警告");
+            Messages.showWarningDialog(project, "請先完成配置", "警告");
             return;
         }
 
-        // 在完成操作前再次驗證數據類型
-        if (!validateDataTypes()) {
+        if (!tableModel.validateDataTypes()) {
+            Messages.showErrorDialog(project, "請填寫所有欄位的數據類型", "錯誤");
             return;
         }
         super.doOKAction();
     }
 
-    public Map<Integer, Map<String, String>> getLevelClassNamesMap() {
-        return levelClassNamesMap;
+    // Getters
+    public List<DtoField> getDtoFields() {
+        return tableModel.getDtoFields();
     }
 
     public String getAuthor() {
@@ -565,32 +285,23 @@ public class DtoGeneratorDialog extends DialogWrapper {
         return mainClassName;
     }
 
-    public boolean isUpstream() {
-        return isUpstream;
+    public boolean isJava17() {
+        return isJava17;
     }
-}
 
-// 自定義的 TableCellRenderer
-class ValidationCellRenderer extends DefaultTableCellRenderer {
-    @Override
-    public Component getTableCellRendererComponent(
-            JTable table, Object value,
-            boolean isSelected, boolean hasFocus,
-            int row, int column) {
-        Component c = super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
+    public String getMsgId() {
+        return msgId;
+    }
 
-        if (column == 2) { // Data Type 列
-            String dataType = value != null ? value.toString() : "";
-            if (dataType.trim().isEmpty()) {
-                setBackground(new Color(255, 200, 200)); // 淺紅色
-            } else {
-                setBackground(table.getBackground()); // 恢復默認背景色
-            }
-        } else {
-            setBackground(table.getBackground()); // 其他列使用默認背景色
-        }
+    public Map<Integer, Map<String, String>> getLevelClassNamesMap() {
+        return new HashMap<>(levelClassNamesMap);
+    }
 
-        return c;
+    public String getMessageDirectionComment() {
+        return configDialog != null ? configDialog.getMessageDirectionComment() : "";
+    }
+
+    public String getTargetPackage() {
+        return configDialog != null ? configDialog.getTargetPackage() : "dto";
     }
 }
