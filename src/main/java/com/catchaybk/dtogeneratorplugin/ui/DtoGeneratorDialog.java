@@ -5,9 +5,14 @@ import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import org.jetbrains.annotations.Nullable;
@@ -354,7 +359,30 @@ public class DtoGeneratorDialog extends DialogWrapper {
             }
         }
 
-        // 創建配置對話框，添加 project 和 targetPackage 參數
+        // 獲取當前文件的包路徑
+        String currentPackage = "";
+        VirtualFile currentFile = FileEditorManager.getInstance(project).getSelectedFiles()[0];
+        PsiFile psiFile = PsiManager.getInstance(project).findFile(currentFile);
+        if (psiFile instanceof PsiJavaFile) {
+            PsiJavaFile javaFile = (PsiJavaFile) psiFile;
+            String basePackage = javaFile.getPackageName();
+
+            // 檢查當前包下是否存在 dto 包
+            PsiManager psiManager = PsiManager.getInstance(project);
+            VirtualFile baseDir = currentFile.getParent();
+            VirtualFile dtoDir = baseDir.findChild("dto");
+
+            if (dtoDir != null && dtoDir.isDirectory()) {
+                // 如果存在 dto 目錄，使用完整的 dto 包路徑
+                currentPackage = basePackage + ".dto";
+            } else {
+                // 如果不存在 dto 目錄，使用基礎包路徑
+                currentPackage = basePackage;
+            }
+        }
+
+
+        // 創建配置對話框
         configDialog = new DtoConfigDialog(
                 msgId,
                 author,
@@ -363,7 +391,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                 isUpstream,
                 levelTypesMap,
                 project,
-                "dto"
+                currentPackage // 使用處理後的包路徑
         );
 
         if (configDialog.showAndGet()) {
