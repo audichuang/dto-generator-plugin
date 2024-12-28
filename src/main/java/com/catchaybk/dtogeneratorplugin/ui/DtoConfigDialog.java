@@ -112,16 +112,31 @@ public class DtoConfigDialog extends DialogWrapper {
         // 包選擇器
         packageChooser = new TextFieldWithBrowseButton();
         packageChooser.setText(initialPackage);
-        packageChooser.addActionListener(e -> {
-            PackageChooserDialog packageChooser = new PackageChooserDialog("Choose Target Package", project);
-            packageChooser.show();
 
-            PsiPackage selectedPackage = packageChooser.getSelectedPackage();
-            if (selectedPackage != null) {
-                this.packageChooser.setText(selectedPackage.getQualifiedName());
+        // 使用新的 PackageChooserDialog API
+        packageChooser.addActionListener(e -> {
+            PackageChooserDialog dialog = new PackageChooserDialog("選擇目標包", project);
+
+            // 如果當前有值，預先選中
+            String currentPackage = packageChooser.getText();
+            if (!currentPackage.isEmpty()) {
+                dialog.selectPackage(currentPackage);
+            }
+
+            // 使用 showAndGet() 替代 show()
+            if (dialog.showAndGet()) {
+                PsiPackage selectedPackage = dialog.getSelectedPackage();
+                if (selectedPackage != null) {
+                    packageChooser.setText(selectedPackage.getQualifiedName());
+                }
             }
         });
+
+        // 確保文本框可編輯
+        packageChooser.getTextField().setEditable(true);
+
         addFormRow(panel, "目標包路徑:", packageChooser, gbc, currentRow++);
+
 
         // MSGID 配置
         msgIdField = new JBTextField(initialMsgId);

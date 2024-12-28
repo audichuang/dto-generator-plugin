@@ -354,6 +354,7 @@ public class GenerateDTOAction extends AnAction {
         // 添加類註釋
         if (messageDirectionComment != null && !messageDirectionComment.isEmpty()) {
             sb.append("/**\n");
+            sb.append(" * ").append(msgId).append("\n");
             sb.append(" * ").append(messageDirectionComment).append("\n");
             if (author != null && !author.isEmpty()) {
                 sb.append(" * @author ").append(author).append("\n");
