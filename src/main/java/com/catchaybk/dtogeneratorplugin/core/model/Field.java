@@ -6,9 +6,10 @@ import lombok.Setter;
 import java.util.*;
 
 import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
+import com.catchaybk.dtogeneratorplugin.core.config.FieldConfig;
 
 /**
- * DTO字段模型類
+ * 字段模型類
  * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
  * 
  * 主要功能：
@@ -20,38 +21,6 @@ import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSett
 @Getter
 @Setter
 public class Field {
-    /** 類型導入映射表，用於管理需要特殊導入的類型 */
-    private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>() {
-        {
-            put("Timestamp", "java.sql.Timestamp");
-            put("BigDecimal", "java.math.BigDecimal");
-            put("LocalDate", "java.time.LocalDate");
-            put("LocalDateTime", "java.time.LocalDateTime");
-            put("Date", "java.util.Date");
-            put("List", "java.util.List");
-        }
-    };
-
-    /** 基本類型和包裝類型集合 */
-    private static final Set<String> PRIMITIVE_AND_WRAPPER_TYPES = new HashSet<>(Arrays.asList(
-            "string", "String",
-            "int", "integer", "Integer",
-            "long", "Long",
-            "double", "Double",
-            "float", "Float",
-            "boolean", "Boolean",
-            "date", "Date",
-            "datetime", "DateTime",
-            "timestamp", "Timestamp",
-            "bigdecimal", "BigDecimal",
-            "decimal", "BigDecimal",
-            "char", "Character",
-            "byte", "Byte",
-            "short", "Short",
-            "void", "Void",
-            "LocalDate",
-            "LocalDateTime"));
-
     // 字段基本屬性
     private final boolean isJava17; // 是否使用 Java 17
     private int level; // 字段層級
@@ -121,26 +90,7 @@ public class Field {
      * @return 如果是原始類型或包裝類型返回true
      */
     public boolean isPrimitiveOrWrapperType(String type) {
-        Set<String> primitiveAndWrapperTypes = new HashSet<>(Arrays.asList(
-                "string", "String",
-                "int", "integer", "Integer",
-                "long", "Long",
-                "double", "Double",
-                "float", "Float",
-                "boolean", "Boolean",
-                "date", "Date",
-                "datetime", "DateTime",
-                "timestamp", "Timestamp",
-                "bigdecimal", "BigDecimal",
-                "decimal", "BigDecimal",
-                "char", "Character",
-                "byte", "Byte",
-                "short", "Short",
-                "void", "Void",
-                "LocalDate",
-                "LocalDateTime"));
-
-        return primitiveAndWrapperTypes.contains(type.toLowerCase());
+        return FieldConfig.PRIMITIVE_AND_WRAPPER_TYPES.contains(type.toLowerCase());
     }
 
     /**
@@ -229,29 +179,8 @@ public class Field {
         if (typeName == null || typeName.isEmpty()) {
             return typeName;
         }
-
         String lowercaseType = typeName.toLowerCase().trim();
-        Map<String, String> typeMapping = new HashMap<>();
-        typeMapping.put("string", "String");
-        typeMapping.put("integer", "Integer");
-        typeMapping.put("int", "Integer");
-        typeMapping.put("long", "Long");
-        typeMapping.put("double", "Double");
-        typeMapping.put("float", "Float");
-        typeMapping.put("boolean", "Boolean");
-        typeMapping.put("date", "Date");
-        typeMapping.put("datetime", "LocalDateTime");
-        typeMapping.put("timestamp", "Timestamp");
-        typeMapping.put("bigdecimal", "BigDecimal");
-        typeMapping.put("decimal", "BigDecimal");
-        typeMapping.put("char", "Character");
-        typeMapping.put("byte", "Byte");
-        typeMapping.put("short", "Short");
-        typeMapping.put("void", "Void");
-        typeMapping.put("localdate", "LocalDate");
-        typeMapping.put("localdatetime", "LocalDateTime");
-
-        return typeMapping.getOrDefault(lowercaseType, typeName);
+        return FieldConfig.TYPE_FORMAT_MAP.getOrDefault(lowercaseType, typeName);
     }
 
     public String getCapitalizedName() {
@@ -267,9 +196,14 @@ public class Field {
 
         if (dataType != null) {
             String lowerType = dataType.toLowerCase();
-            if (lowerType.startsWith("list")) {
-                imports.add("java.util.List");
-            } else if (lowerType.contains("date")) {
+            String importPath = FieldConfig.TYPE_IMPORT_MAP.get(
+                    lowerType.startsWith("list") ? "List"
+                            : Character.toUpperCase(lowerType.charAt(0)) + lowerType.substring(1));
+
+            if (importPath != null) {
+                imports.add(importPath);
+            }
+            if (lowerType.contains("date")) {
                 imports.add("java.util.Date");
             } else if (lowerType.contains("timestamp")) {
                 imports.add("java.sql.Timestamp");

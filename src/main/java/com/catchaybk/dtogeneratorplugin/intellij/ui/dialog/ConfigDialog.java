@@ -1,6 +1,6 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
-import com.catchaybk.dtogeneratorplugin.core.generator.NameGenerator;
+import com.catchaybk.dtogeneratorplugin.core.generator.ClassNameGenerator;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.ConfigPanelFactory;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
@@ -375,14 +375,14 @@ public class ConfigDialog extends DialogWrapper {
         String effectiveId = getEffectiveId();
 
         // 更新主類名
-        String mainClassName = NameGenerator.generateClassName(
+        String mainClassName = ClassNameGenerator.generateClassName(
                 effectiveId, direction, "", true);
         ui.mainClassField.setText(mainClassName);
 
         // 更新所有子類名
         for (Map.Entry<String, JBTextField> entry : classNameFields.entrySet()) {
             String baseName = entry.getKey();
-            String newClassName = NameGenerator.generateClassName(
+            String newClassName = ClassNameGenerator.generateClassName(
                     effectiveId, direction, baseName, false);
             entry.getValue().setText(newClassName);
         }

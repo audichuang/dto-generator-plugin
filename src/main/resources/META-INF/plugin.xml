@@ -142,6 +142,14 @@ public class MainDTO {
             <li>整合 Jackson 註解</li>
             <li>整合 Lombok 功能</li>
         </ul>
+        <h3>v1.2.0</h3>
+        <ul>
+            <li>新增 Pattern 正則表達式驗證功能</li>
+            <li>新增驗證消息自定義配置</li>
+            <li>優化配置界面，提升用戶體驗</li>
+            <li>改進類型識別和處理機制</li>
+            <li>修復已知問題和改進性能</li>
+        </ul>
     ]]></change-notes>
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->

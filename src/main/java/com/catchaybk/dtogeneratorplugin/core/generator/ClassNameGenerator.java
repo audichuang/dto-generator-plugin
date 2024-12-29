@@ -1,7 +1,7 @@
 package com.catchaybk.dtogeneratorplugin.core.generator;
 
 /**
- * DTO名稱生成器
+ * 名稱生成器
  * 負責根據不同條件生成DTO類的名稱
  * <p>
  * 命名規則：
@@ -12,7 +12,7 @@ package com.catchaybk.dtogeneratorplugin.core.generator;
  * - 主類：[電文ID] + [方向後綴(Tranrq/Tranrs)]
  * - 子類：[電文ID] + [方向後綴] + [首字母大寫的字段名]
  */
-public class NameGenerator {
+public class ClassNameGenerator {
     /**
      * 生成DTO類名
      *
