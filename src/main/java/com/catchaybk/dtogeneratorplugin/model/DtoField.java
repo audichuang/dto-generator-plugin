@@ -8,17 +8,7 @@ import java.util.*;
 @Getter
 @Setter
 public class DtoField {
-    private int level;
-    private String dataName;
-    private String dataType;
-    private String size;
-    private boolean required;
-    private String comments;
-    private String childClassName;
-    private boolean isObject;
-    private String requiredString;
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
-    private final boolean isJava17;
 
     static {
         TYPE_IMPORT_MAP.put("Timestamp", "java.sql.Timestamp");
@@ -29,8 +19,19 @@ public class DtoField {
         TYPE_IMPORT_MAP.put("List", "java.util.List");
     }
 
+    private final boolean isJava17;
+    private int level;
+    private String dataName;
+    private String dataType;
+    private String size;
+    private boolean required;
+    private String comments;
+    private String childClassName;
+    private boolean isObject;
+    private String requiredString;
+
     public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments,
-            boolean isJava17) {
+                    boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;

@@ -192,6 +192,24 @@ public class DtoTableModel extends DefaultTableModel {
         return true;
     }
 
+    private boolean isValidSizeFormat(String size, String dataType) {
+        if (size == null || size.trim().isEmpty()) {
+            return true;
+        }
+
+        String lowerType = dataType.toLowerCase();
+        // 對於 decimal 類型，允許 "整數位,小數位" 格式
+        if (lowerType.equals("decimal") || lowerType.equals("bigdecimal")) {
+            return size.matches("\\d+") || size.matches("\\d+,\\d+");
+        }
+        // 其他類型只允許純數字
+        return size.matches("\\d+");
+    }
+
+    public void updateJavaVersion(boolean isJava17) {
+        this.isJava17 = isJava17;
+    }
+
     public static class ValidationCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
@@ -238,23 +256,5 @@ public class DtoTableModel extends DefaultTableModel {
 
             return c;
         }
-    }
-
-    private boolean isValidSizeFormat(String size, String dataType) {
-        if (size == null || size.trim().isEmpty()) {
-            return true;
-        }
-
-        String lowerType = dataType.toLowerCase();
-        // 對於 decimal 類型，允許 "整數位,小數位" 格式
-        if (lowerType.equals("decimal") || lowerType.equals("bigdecimal")) {
-            return size.matches("\\d+") || size.matches("\\d+,\\d+");
-        }
-        // 其他類型只允許純數字
-        return size.matches("\\d+");
-    }
-
-    public void updateJavaVersion(boolean isJava17) {
-        this.isJava17 = isJava17;
     }
 }

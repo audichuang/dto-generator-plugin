@@ -20,7 +20,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.ItemEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,22 +36,12 @@ public class DtoConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
-    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
+    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
+    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 600;
     private static final int SCROLL_HEIGHT = 600;
-
-    // UI組件
-    private final UIComponents ui;
-
-    // 配置數據
-    private final ConfigData config;
-    private final Project project;
-    private final Map<String, JBTextField> classNameFields = new HashMap<>();
-    private final Map<Integer, List<String>> levelTypesMap;
-
     private static final String[] JSON_STYLES = {
             "原始格式 (studentName -> studentName)",
             "全大寫 (studentName -> STUDENTNAME)",
@@ -61,7 +50,6 @@ public class DtoConfigDialog extends DialogWrapper {
             "小駝峰 (StudentName -> studentName)",
             "大駝峰 (studentName -> StudentName)"
     };
-
     private static final String[] JSON_ALIAS_OPTIONS = {
             "無 (不添加 JsonAlias)",
             "原始格式 (studentName -> studentName)",
@@ -71,10 +59,17 @@ public class DtoConfigDialog extends DialogWrapper {
             "小駝峰 (StudentName -> studentName)",
             "大駝峰 (studentName -> StudentName)"
     };
+    // UI組件
+    private final UIComponents ui;
+    // 配置數據
+    private final ConfigData config;
+    private final Project project;
+    private final Map<String, JBTextField> classNameFields = new HashMap<>();
+    private final Map<Integer, List<String>> levelTypesMap;
 
     public DtoConfigDialog(String msgId, String author, String mainClassName,
-            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-            Project project, String initialPackage) {
+                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+                           Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -139,29 +134,6 @@ public class DtoConfigDialog extends DialogWrapper {
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         return mainPanel;
-    }
-
-    /**
-     * 配置數據類
-     * 存儲所有配置相關的初始值
-     */
-    private static class ConfigData {
-        final String msgId;
-        final String author;
-        final String mainClassName;
-        final boolean isJava17;
-        final boolean isUpstream;
-        final String initialPackage;
-
-        ConfigData(String msgId, String author, String mainClassName,
-                boolean isJava17, boolean isUpstream, String initialPackage) {
-            this.msgId = msgId;
-            this.author = author;
-            this.mainClassName = mainClassName;
-            this.isJava17 = isJava17;
-            this.isUpstream = isUpstream;
-            this.initialPackage = initialPackage;
-        }
     }
 
     // Getter方法
@@ -552,6 +524,44 @@ public class DtoConfigDialog extends DialogWrapper {
         return result;
     }
 
+    public boolean isRememberAuthor() {
+        return ui.rememberAuthorBox.isSelected();
+    }
+
+    public String getJsonPropertyStyle() {
+        return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
+    }
+
+    public List<String> getJsonAliasStyles() {
+        return ui.jsonAliasStyleList.getSelectedValuesList().stream()
+                .map(style -> style.split(" ")[0])
+                .filter(style -> !style.equals("��"))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 配置數據類
+     * 存儲所有配置相關的初始值
+     */
+    private static class ConfigData {
+        final String msgId;
+        final String author;
+        final String mainClassName;
+        final boolean isJava17;
+        final boolean isUpstream;
+        final String initialPackage;
+
+        ConfigData(String msgId, String author, String mainClassName,
+                   boolean isJava17, boolean isUpstream, String initialPackage) {
+            this.msgId = msgId;
+            this.author = author;
+            this.mainClassName = mainClassName;
+            this.isJava17 = isJava17;
+            this.isUpstream = isUpstream;
+            this.initialPackage = initialPackage;
+        }
+    }
+
     /**
      * UI組件類
      * 集中管理所有UI組件��提高代碼的組織性和可維護性
@@ -647,20 +657,5 @@ public class DtoConfigDialog extends DialogWrapper {
             jsonAliasStyleList.setModel(model);
             jsonAliasStyleList.clearSelection();
         }
-    }
-
-    public boolean isRememberAuthor() {
-        return ui.rememberAuthorBox.isSelected();
-    }
-
-    public String getJsonPropertyStyle() {
-        return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
-    }
-
-    public List<String> getJsonAliasStyles() {
-        return ui.jsonAliasStyleList.getSelectedValuesList().stream()
-                .map(style -> style.split(" ")[0])
-                .filter(style -> !style.equals("��"))
-                .collect(Collectors.toList());
     }
 }

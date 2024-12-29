@@ -32,6 +32,39 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         setTitle("驗證消息設置");
     }
 
+    public static String getNotBlankMessage(String propertyName, String comment) {
+        String template = PropertiesComponent.getInstance().getValue(NOTBLANK_KEY, "${name} 不得為空");
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName);
+    }
+
+    public static String getNotNullMessage(String propertyName, String comment) {
+        String template = PropertiesComponent.getInstance().getValue(NOTNULL_KEY, "${name} 為必填");
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName);
+    }
+
+    public static String getSizeMessage(String propertyName, String comment, String max) {
+        String template = PropertiesComponent.getInstance().getValue(SIZE_KEY, "${name} 長度不得超過${max}");
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
+                .replace("${max}", max);
+    }
+
+    public static String getDigitsMessage(String propertyName, String comment, String size) {
+        String template = PropertiesComponent.getInstance().getValue(DIGITS_KEY,
+                "${name}格式不正確，整數位最多${integer}位，小數位最多${fraction}位");
+
+        String[] parts = size.split(",");
+        String integer = parts[0];
+        String fraction = parts.length > 1 ? parts[1] : "0";
+
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
+                .replace("${integer}", integer)
+                .replace("${fraction}", fraction);
+    }
+
     @Override
     protected JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -98,38 +131,5 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         props.setValue(NOTNULL_KEY, notNullField.getText());
         props.setValue(SIZE_KEY, sizeField.getText());
         super.doOKAction();
-    }
-
-    public static String getNotBlankMessage(String propertyName, String comment) {
-        String template = PropertiesComponent.getInstance().getValue(NOTBLANK_KEY, "${name} 不得為空");
-        return template.replace("${name}", propertyName)
-                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName);
-    }
-
-    public static String getNotNullMessage(String propertyName, String comment) {
-        String template = PropertiesComponent.getInstance().getValue(NOTNULL_KEY, "${name} 為必填");
-        return template.replace("${name}", propertyName)
-                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName);
-    }
-
-    public static String getSizeMessage(String propertyName, String comment, String max) {
-        String template = PropertiesComponent.getInstance().getValue(SIZE_KEY, "${name} 長度不得超過${max}");
-        return template.replace("${name}", propertyName)
-                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
-                .replace("${max}", max);
-    }
-
-    public static String getDigitsMessage(String propertyName, String comment, String size) {
-        String template = PropertiesComponent.getInstance().getValue(DIGITS_KEY,
-                "${name}格式不正確，整數位最多${integer}位，小數位最多${fraction}位");
-
-        String[] parts = size.split(",");
-        String integer = parts[0];
-        String fraction = parts.length > 1 ? parts[1] : "0";
-
-        return template.replace("${name}", propertyName)
-                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName)
-                .replace("${integer}", integer)
-                .replace("${fraction}", fraction);
     }
 }

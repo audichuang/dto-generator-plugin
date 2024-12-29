@@ -2,6 +2,8 @@ package com.catchaybk.dtogeneratorplugin;
 
 import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
 import com.catchaybk.dtogeneratorplugin.ui.DtoGeneratorDialog;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -14,8 +16,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,11 +94,6 @@ public class GenerateDTOAction extends AnAction {
         return current;
     }
 
-    private static class ClassCounter {
-        int totalClasses = 0;
-        int successClasses = 0;
-    }
-
     private void generateDtoClasses(Project project, PsiDirectory directory, UserConfig config) {
         DtoStructure mainStructure = new DtoStructureAnalyzer(
                 config.dtoFields,
@@ -159,7 +154,7 @@ public class GenerateDTOAction extends AnAction {
                 .createNotification(
                         "DTO生成完成",
                         message.toString(),
-                        emptyClasses.isEmpty() ? NotificationType.INFORMATION : NotificationType.WARNING)
+                        emptyClasses.isEmpty() ? NotificationType.IDE_UPDATE : NotificationType.WARNING)
                 .notify(project);
     }
 
@@ -189,5 +184,10 @@ public class GenerateDTOAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         e.getPresentation().setEnabledAndVisible(e.getProject() != null);
+    }
+
+    private static class ClassCounter {
+        int totalClasses = 0;
+        int successClasses = 0;
     }
 }

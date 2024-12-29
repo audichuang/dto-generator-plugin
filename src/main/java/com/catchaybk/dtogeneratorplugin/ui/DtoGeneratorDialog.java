@@ -153,7 +153,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                             "請確認是否要繼續？",
                     unknownTypesStr);
 
-            String[] options = { "繼續", "取消" };
+            String[] options = {"繼續", "取消"};
             int result = Messages.showDialog(
                     message,
                     "警告",
