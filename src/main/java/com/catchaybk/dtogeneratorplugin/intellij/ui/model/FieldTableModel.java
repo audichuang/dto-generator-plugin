@@ -3,6 +3,7 @@ package com.catchaybk.dtogeneratorplugin.intellij.ui.model;
 import com.catchaybk.dtogeneratorplugin.core.config.TypeRegistry;
 import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.intellij.openapi.ui.Messages;
+import org.codehaus.plexus.util.StringUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -14,21 +15,20 @@ import java.util.*;
 
 /**
  * 字段表格數據模型
- * 負責管理和驗證表格中的字段數據
+ * 負責管理和驗證表格中的字段數據，並處理數據的智能填充
  * <p>
  * 主要功能：
  * 1. 管理表格數據的增刪改查
  * 2. 處理數據的驗證和格式化
  * 3. 提供表格單元格的渲染邏輯
- * 4. 處理剪貼板數據的導入
+ * 4. 處理剪貼板數據的智能填充
+ * 5. 支持列順序的動態調整
  * <p>
- * 表格列：
- * - Level: 字段層級
- * - Data Name: 字段名稱
- * - Data Type: 數據類型
- * - Size: 大小限制
- * - Required: 是否必填
- * - Comments: 註解說明
+ * 數據填充策略：
+ * - 3個值或更少：按順序填充到前面的欄位
+ * - 4個值：根據最後一個值的特徵（Size/Required/Comment）決定填充位置
+ * - 5個值：分析第四和第五個值的特徵來決定填充位置
+ * - 6個值：按順序填充所有欄位
  */
 public class FieldTableModel extends DefaultTableModel {
     // 使用 enum 來定義列名，方便管理和查找
@@ -61,7 +61,7 @@ public class FieldTableModel extends DefaultTableModel {
         }
     }
 
-    private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
+    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
@@ -73,7 +73,7 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     public void addEmptyRow() {
-        addRow(new Object[] { "", "", "", "", "", "" });
+        addRow(new Object[]{"", "", "", "", "", ""});
     }
 
     public void processClipboardData(String clipboardData) {
@@ -83,6 +83,12 @@ public class FieldTableModel extends DefaultTableModel {
                 .forEach(this::processRow);
     }
 
+    /**
+     * 處理從剪貼板貼上的數據
+     * 支持多行數據和狀態說明行
+     *
+     * @param row 要處理的數據行
+     */
     private void processRow(String row) {
         if (row.matches("^\\d+:\\s+.*")) {
             appendToLastRowComment(row);
@@ -98,43 +104,139 @@ public class FieldTableModel extends DefaultTableModel {
             }
         }
 
-        // 如果沒有數據，直接返回
-        if (values.isEmpty()) {
+        if (values.isEmpty())
             return;
-        }
 
         // 創建新行數據
         String[] newRow = new String[getColumnCount()];
         Arrays.fill(newRow, "");
 
-        // 使用當前的列順序填充數據
-        if (currentColumnOrder != null) {
-            for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
-                // 根據當前列順序找到正確的位置
-                String columnName = currentColumnOrder.get(i);
-                int modelIndex = Arrays.asList(COLUMN_NAMES).indexOf(columnName);
-                if (modelIndex >= 0 && i < values.size()) {
-                    newRow[modelIndex] = values.get(i);
-                }
-            }
-        } else {
-            // 如果還沒有列順序（第一次使用），就按順序填充
-            for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
-                newRow[i] = values.get(i);
-            }
-        }
+        // 智能分配數據到對應欄位
+        distributeValues(values, newRow);
 
-        // 檢查是否有效（至少包含一個數字）
-        boolean hasNumber = false;
-        for (String value : newRow) {
-            if (value.matches("\\d+")) {
-                hasNumber = true;
-                break;
-            }
-        }
-
-        if (hasNumber) {
+        // 如果有層級數字，則添加行
+        if (Arrays.stream(newRow).anyMatch(value -> value.matches("\\d+"))) {
             addRow(newRow);
+        }
+    }
+
+    /**
+     * 根據數據量和特徵智能分配值到對應欄位
+     *
+     * @param values 要分配的值列表
+     * @param newRow 新行數據數組
+     */
+    private void distributeValues(List<String> values, String[] newRow) {
+        int totalValues = values.size();
+
+        // 根據值的數量決定處理策略
+        switch (totalValues) {
+            case 1:
+            case 2:
+            case 3:
+                // 3個或更少的值，直接按順序填充
+                fillByOrder(values, newRow);
+                break;
+
+            case 4:
+                // 4個值的情況需要特殊處理
+                handleFourValues(values, newRow);
+                break;
+
+            case 5:
+                // 5個值的情況需要特殊處理
+                handleFiveValues(values, newRow);
+                break;
+
+            default:
+                // 6個或更多值，按順序填充前6個
+                for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
+                    newRow[i] = values.get(i);
+                }
+        }
+    }
+
+    private void fillByOrder(List<String> values, String[] newRow) {
+        // 直接按順序填充
+        for (int i = 0; i < values.size(); i++) {
+            newRow[i] = values.get(i);
+        }
+    }
+
+    /**
+     * 處理4個值的情況
+     * 規則：
+     * 1. 如果最後一個值是數字格式，視為Size
+     * 2. 如果最後一個值是Y/N，視為Required
+     * 3. 其他情況，視為Comments
+     *
+     * @param values 4個值的列表
+     * @param newRow 新行數據數組
+     */
+    private void handleFourValues(List<String> values, String[] newRow) {
+        String lastValue = values.get(3);
+
+        // 如果最後一個值是數字格式，可能是Size
+        if (isValidSizeFormat(lastValue)) {
+            newRow[0] = values.get(0); // Level
+            newRow[1] = values.get(1); // Data Name
+            newRow[2] = values.get(2); // Data Type
+            newRow[3] = lastValue; // Size
+        }
+        // 如果最後一個值是Y/N，可能是Required
+        else if (lastValue.matches("[YyNn]")) {
+            newRow[0] = values.get(0); // Level
+            newRow[1] = values.get(1); // Data Name
+            newRow[2] = values.get(2); // Data Type
+            newRow[4] = lastValue.toUpperCase(); // Required
+        }
+        // 其他情況，可能是註解
+        else {
+            newRow[0] = values.get(0); // Level
+            newRow[1] = values.get(1); // Data Name
+            newRow[2] = values.get(2); // Data Type
+            newRow[5] = lastValue; // Comments
+        }
+    }
+
+    /**
+     * 處理5個值的情況
+     * 規則：
+     * 1. 前三個值固定為Level、Name、Type
+     * 2. 第四個值如果是Size格式，則第五個值可能是Required或Comment
+     * 3. 第四個值如果是Y/N，則是Required，第五個值為Comment
+     * 4. 其他情況，第四個值為Size，第五個值為Comment
+     *
+     * @param values 5個值的列表
+     * @param newRow 新行數據數組
+     */
+    private void handleFiveValues(List<String> values, String[] newRow) {
+        String fourthValue = values.get(3);
+        String fifthValue = values.get(4);
+
+        // 基本資料總是填入
+        newRow[0] = values.get(0); // Level
+        newRow[1] = values.get(1); // Data Name
+        newRow[2] = values.get(2); // Data Type
+
+        // 如果第四個值是Size格式
+        if (isValidSizeFormat(fourthValue)) {
+            newRow[3] = fourthValue; // Size
+            if (fifthValue.matches("[YyNn]")) {
+                newRow[4] = fifthValue.toUpperCase(); // Required
+            } else {
+                newRow[5] = fifthValue; // Comments
+            }
+        }
+        // 如果第四個值是Y/N
+        else if (fourthValue.matches("[YyNn]")) {
+            newRow[4] = fourthValue.toUpperCase(); // Required
+            newRow[5] = fifthValue; // Comments
+        }
+        // 其他情況
+        else {
+            newRow[3] = fourthValue; // Size
+            newRow[5] = fifthValue; // Comments
         }
     }
 
@@ -248,7 +350,7 @@ public class FieldTableModel extends DefaultTableModel {
             }
 
             // 檢查 Size 格式
-            if (!isValidSizeFormat(size, dataType)) {
+            if (!isValidSizeFormat(size)) {
                 hasSizeError = true;
             }
         }
@@ -280,18 +382,22 @@ public class FieldTableModel extends DefaultTableModel {
         return true;
     }
 
-    private boolean isValidSizeFormat(String size, String dataType) {
-        if (size == null || size.trim().isEmpty()) {
+    /**
+     * 驗證Size格式是否有效
+     * 支持：
+     * 1. 純數字格式（如：10）
+     * 2. 帶小數點的格式（如：10,2）
+     *
+     * @param value 要驗證的值
+     * @return 格式是否有效
+     */
+    private boolean isValidSizeFormat(String value) {
+        if (StringUtils.isBlank(value)) {
             return true;
         }
 
-        String lowerType = dataType.toLowerCase();
-        // 對於 decimal 類型，允許 "整數位,小數位" 格式
-        if (lowerType.equals("decimal") || lowerType.equals("bigdecimal")) {
-            return size.matches("\\d+") || size.matches("\\d+,\\d+");
-        }
-        // 其他類型只允許純數字
-        return size.matches("\\d+");
+        // 檢查是否為純數字或帶逗號的數字格式
+        return value.matches("\\d+") || value.matches("\\d+,\\d+");
     }
 
     public void updateJavaVersion(boolean isJava17) {
@@ -308,6 +414,13 @@ public class FieldTableModel extends DefaultTableModel {
         return -1;
     }
 
+    /**
+     * 表格單元格渲染器
+     * 負責：
+     * 1. 數據類型的有效性驗證和提示
+     * 2. Size格式的驗證和提示
+     * 3. 錯誤和警告的視覺反饋
+     */
     public static class ValidationCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
@@ -344,7 +457,7 @@ public class FieldTableModel extends DefaultTableModel {
 
                 String dataType = dataTypeColumn >= 0 ? (String) table.getValueAt(row, dataTypeColumn) : "";
 
-                if (!cellValue.isEmpty() && !model.isValidSizeFormat(cellValue, dataType)) {
+                if (!cellValue.isEmpty() && !model.isValidSizeFormat(cellValue)) {
                     setBorder(BorderFactory.createLineBorder(Color.RED, 2));
                     setToolTipText("Size格式不正確");
                     setBackground(new Color(255, 200, 200));
@@ -363,6 +476,12 @@ public class FieldTableModel extends DefaultTableModel {
         }
     }
 
+    /**
+     * 更新列順序
+     * 當用戶拖動列時調用，確保數據處理跟隨新的列順序
+     *
+     * @param columnModel 表格列模型
+     */
     public void updateColumnOrder(TableColumnModel columnModel) {
         currentColumnOrder = new ArrayList<>();
         for (int viewIndex = 0; viewIndex < columnModel.getColumnCount(); viewIndex++) {
@@ -370,12 +489,5 @@ public class FieldTableModel extends DefaultTableModel {
             int modelIndex = columnModel.getColumn(viewIndex).getModelIndex();
             currentColumnOrder.add(COLUMN_NAMES[modelIndex]);
         }
-    }
-
-    private int getActualColumnIndex(String columnName) {
-        if (currentColumnOrder != null) {
-            return currentColumnOrder.indexOf(columnName);
-        }
-        return Arrays.asList(COLUMN_NAMES).indexOf(columnName);
     }
 }
