@@ -14,6 +14,11 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GenerateDTOAction extends AnAction {
     private String targetPackage;
@@ -89,26 +94,73 @@ public class GenerateDTOAction extends AnAction {
         return current;
     }
 
+    private static class ClassCounter {
+        int totalClasses = 0;
+        int successClasses = 0;
+    }
+
     private void generateDtoClasses(Project project, PsiDirectory directory, UserConfig config) {
         DtoStructure mainStructure = new DtoStructureAnalyzer(
                 config.dtoFields,
                 config.mainClassName,
                 config.levelClassNamesMap).analyze();
 
-        generateAllClasses(project, directory, mainStructure, config);
+        // 收集空類信息和計數
+        List<String> emptyClasses = new ArrayList<>();
+        ClassCounter counter = new ClassCounter();
+
+        // 檢查主類
+        counter.totalClasses++;
+        if (mainStructure.getFields().isEmpty()) {
+            emptyClasses.add(mainStructure.getClassName());
+        } else {
+            counter.successClasses++;
+        }
+
+        // 遞歸生成所有類並檢查
+        generateAllClasses(project, directory, mainStructure, config, emptyClasses, counter);
+
+        // 顯示結果通知
+        showCompletionNotification(project, counter.totalClasses, counter.successClasses, emptyClasses);
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-            DtoStructure structure, UserConfig config) {
+            DtoStructure structure, UserConfig config,
+            List<String> emptyClasses, ClassCounter counter) {
+        // 生成當前類
         String classContent = new DtoClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
-
         createJavaClass(project, directory, structure.getClassName(), classContent);
 
-        // 遞歸生成子類
+        // 檢查子類
         for (DtoStructure childStructure : structure.getChildStructures()) {
-            generateAllClasses(project, directory, childStructure, config);
+            counter.totalClasses++;
+            if (childStructure.getFields().isEmpty()) {
+                emptyClasses.add(childStructure.getClassName());
+            } else {
+                counter.successClasses++;
+            }
+            generateAllClasses(project, directory, childStructure, config, emptyClasses, counter);
         }
+    }
+
+    private void showCompletionNotification(Project project, int totalClasses, int successClasses,
+            List<String> emptyClasses) {
+        StringBuilder message = new StringBuilder()
+                .append(String.format("已成功生成 %d 個Class", successClasses));
+
+        if (!emptyClasses.isEmpty()) {
+            message.append(String.format("\n\n警告：以下 %d 個類沒有任何屬性，可能是由於類型設置錯誤：\n", emptyClasses.size()))
+                    .append(String.join("\n", emptyClasses));
+        }
+
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup("DTO Generator Notifications")
+                .createNotification(
+                        "DTO生成完成",
+                        message.toString(),
+                        emptyClasses.isEmpty() ? NotificationType.INFORMATION : NotificationType.WARNING)
+                .notify(project);
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,

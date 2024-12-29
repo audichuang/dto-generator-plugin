@@ -300,26 +300,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
             return;
         }
 
-        int totalClasses = countTotalClasses();
         super.doOKAction();
-
-        // 顯示創建完成的通知
-        NotificationGroupManager.getInstance()
-                .getNotificationGroup("DTO Generator Notifications")
-                .createNotification(
-                        "DTO生成完成",
-                        String.format("已成功生成 %d 個Class", totalClasses),
-                        NotificationType.INFORMATION)
-                .notify(project);
-    }
-
-    private int countTotalClasses() {
-        // 計算主類和所有子類的總數
-        int count = 1; // 主類
-        for (Map<String, String> levelMap : levelClassNamesMap.values()) {
-            count += levelMap.size();
-        }
-        return count;
     }
 
     // Getters
