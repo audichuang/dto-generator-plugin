@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.Messages;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -30,10 +31,41 @@ import java.util.*;
  * - Comments: 註解說明
  */
 public class FieldTableModel extends DefaultTableModel {
-    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
+    // 使用 enum 來定義列名，方便管理和查找
+    public enum Column {
+        LEVEL("Level"),
+        DATA_NAME("Data Name"),
+        DATA_TYPE("Data Type"),
+        SIZE("Size"),
+        REQUIRED("Required"),
+        COMMENTS("Comments");
+
+        private final String name;
+
+        Column(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        // 根據列名找到對應的 enum
+        public static Column fromName(String name) {
+            for (Column col : values()) {
+                if (col.getName().equals(name)) {
+                    return col;
+                }
+            }
+            return null;
+        }
+    }
+
+    private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
+    private List<String> currentColumnOrder;
 
     public FieldTableModel(boolean isJava17) {
         super(COLUMN_NAMES, 0);
@@ -41,7 +73,7 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     public void addEmptyRow() {
-        addRow(new Object[]{"", "", "", "", "", ""});
+        addRow(new Object[] { "", "", "", "", "", "" });
     }
 
     public void processClipboardData(String clipboardData) {
@@ -52,15 +84,57 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     private void processRow(String row) {
-        // 檢查是否是狀態說明行
         if (row.matches("^\\d+:\\s+.*")) {
             appendToLastRowComment(row);
             return;
         }
 
-        String[] columns = parseRowData(row);
-        if (isValidRow(columns)) {
-            addRow(columns);
+        // 分割輸入數據
+        String[] parts = row.split("\\t|(?:  +)");
+        List<String> values = new ArrayList<>();
+        for (String part : parts) {
+            if (!part.trim().isEmpty()) {
+                values.add(part.trim());
+            }
+        }
+
+        // 如果沒有數據，直接返回
+        if (values.isEmpty()) {
+            return;
+        }
+
+        // 創建新行數據
+        String[] newRow = new String[getColumnCount()];
+        Arrays.fill(newRow, "");
+
+        // 使用當前的列順序填充數據
+        if (currentColumnOrder != null) {
+            for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
+                // 根據當前列順序找到正確的位置
+                String columnName = currentColumnOrder.get(i);
+                int modelIndex = Arrays.asList(COLUMN_NAMES).indexOf(columnName);
+                if (modelIndex >= 0 && i < values.size()) {
+                    newRow[modelIndex] = values.get(i);
+                }
+            }
+        } else {
+            // 如果還沒有列順序（第一次使用），就按順序填充
+            for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
+                newRow[i] = values.get(i);
+            }
+        }
+
+        // 檢查是否有效（至少包含一個數字）
+        boolean hasNumber = false;
+        for (String value : newRow) {
+            if (value.matches("\\d+")) {
+                hasNumber = true;
+                break;
+            }
+        }
+
+        if (hasNumber) {
+            addRow(newRow);
         }
     }
 
@@ -72,58 +146,22 @@ public class FieldTableModel extends DefaultTableModel {
         }
     }
 
-    private String[] parseRowData(String row) {
-        String[] columns = new String[6];
-        Arrays.fill(columns, "");
+    private boolean isValidRow(String[] columns) {
+        // 檢查是否有 Level 和 Data Name
+        boolean hasLevel = false;
+        boolean hasName = false;
 
-        String[] parts = row.split("\\t|(?:  +)");
-
-        // 找到第一個數字（level）的位置
-        int levelPos = -1;
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].trim().matches("\\d+")) {
-                levelPos = i;
-                break;
+        for (int i = 0; i < getColumnCount(); i++) {
+            String columnName = getColumnName(i);
+            if (columnName.equals("Level") && !columns[i].isEmpty()) {
+                hasLevel = true;
+            }
+            if (columnName.equals("Data Name") && !columns[i].isEmpty()) {
+                hasName = true;
             }
         }
 
-        if (levelPos == -1)
-            return columns;
-
-        // 根據當前列的順序填充數據
-        for (int i = levelPos; i < parts.length && i - levelPos < 6; i++) {
-            String part = parts[i].trim();
-            if (part.isEmpty())
-                continue;
-
-            int relativePos = i - levelPos;
-            columns[getColumnByPosition(relativePos)] = part;
-        }
-
-        return columns;
-    }
-
-    private int getColumnByPosition(int pos) {
-        switch (pos) {
-            case 0:
-                return 0; // Level 永遠是第一個
-            case 1:
-                return 1; // Data Name 永遠是第二個
-            case 2:
-                return 2; // Data Type
-            case 3:
-                return 3; // Size
-            case 4:
-                return 4; // Required
-            case 5:
-                return 5; // Comments
-            default:
-                return -1;
-        }
-    }
-
-    private boolean isValidRow(String[] columns) {
-        return !columns[0].isEmpty() && !columns[1].isEmpty();
+        return hasLevel && hasName;
     }
 
     public List<Field> getDtoFields() {
@@ -139,17 +177,34 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     private Field createDtoField(int row) {
-        int level = Integer.parseInt(getValueAt(row, 0).toString());
-        String dataName = getValueAt(row, 1).toString();
-        String dataType = getValueAt(row, 2).toString();
-        String size = getValueAt(row, 3).toString();
-        String requiredStr = getValueAt(row, 4).toString().trim();
-        String comments = getValueAt(row, 5).toString();
+        Map<String, String> fieldData = new HashMap<>();
 
-        Field field = new Field(level, dataName, dataType, size,
-                "Y".equalsIgnoreCase(requiredStr), comments, isJava17);
-        field.setRequiredString(requiredStr);
-        return field;
+        // 使用當前的列順序獲取數據
+        if (currentColumnOrder != null) {
+            for (int i = 0; i < getColumnCount(); i++) {
+                String columnName = currentColumnOrder.get(i);
+                // 找到對應的模型索引
+                int modelIndex = Arrays.asList(COLUMN_NAMES).indexOf(columnName);
+                String value = getValueAt(row, modelIndex).toString();
+                fieldData.put(columnName, value);
+            }
+        } else {
+            // 如果沒有自定義順序，使用默認順序
+            for (int i = 0; i < getColumnCount(); i++) {
+                String columnName = COLUMN_NAMES[i];
+                String value = getValueAt(row, i).toString();
+                fieldData.put(columnName, value);
+            }
+        }
+
+        return new Field(
+                Integer.parseInt(fieldData.getOrDefault("Level", "1")),
+                fieldData.getOrDefault("Data Name", ""),
+                fieldData.getOrDefault("Data Type", "String"),
+                fieldData.getOrDefault("Size", ""),
+                "Y".equalsIgnoreCase(fieldData.getOrDefault("Required", "N")),
+                fieldData.getOrDefault("Comments", ""),
+                isJava17);
     }
 
     /**
@@ -162,13 +217,28 @@ public class FieldTableModel extends DefaultTableModel {
         boolean hasSizeError = false;
         Set<String> unknownTypesList = new HashSet<>();
 
-        // 獲取 Data Type 和 Size 列的索引
-        int dataTypeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Data Type");
-        int sizeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Size");
+        // 使用當前列順序獲取索引
+        int dataTypeIndex = -1;
+        int sizeIndex = -1;
+
+        if (currentColumnOrder != null) {
+            for (int i = 0; i < currentColumnOrder.size(); i++) {
+                if (currentColumnOrder.get(i).equals("Data Type")) {
+                    // 找到對應的模型索引
+                    dataTypeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Data Type");
+                } else if (currentColumnOrder.get(i).equals("Size")) {
+                    // 找到對應的模型索引
+                    sizeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Size");
+                }
+            }
+        } else {
+            dataTypeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Data Type");
+            sizeIndex = Arrays.asList(COLUMN_NAMES).indexOf("Size");
+        }
 
         for (int i = 0; i < getRowCount(); i++) {
-            String dataType = (String) getValueAt(i, dataTypeIndex);
-            String size = (String) getValueAt(i, sizeIndex);
+            String dataType = dataTypeIndex >= 0 ? (String) getValueAt(i, dataTypeIndex) : "";
+            String size = sizeIndex >= 0 ? (String) getValueAt(i, sizeIndex) : "";
 
             // 檢查必填的 Data Type
             if (dataType == null || dataType.trim().isEmpty()) {
@@ -228,6 +298,16 @@ public class FieldTableModel extends DefaultTableModel {
         this.isJava17 = isJava17;
     }
 
+    // 獲取列索引的輔助方法
+    private int getColumnIndex(Column column) {
+        for (int i = 0; i < getColumnCount(); i++) {
+            if (getColumnName(i).equals(column.getName())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public static class ValidationCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(
@@ -254,8 +334,15 @@ public class FieldTableModel extends DefaultTableModel {
                 }
             } else if (columnName.equals("Size")) {
                 // 獲取當前行的 Data Type
-                String dataType = (String) table.getValueAt(row,
-                        Arrays.asList(COLUMN_NAMES).indexOf("Data Type"));
+                int dataTypeColumn = -1;
+                for (int i = 0; i < table.getColumnCount(); i++) {
+                    if (table.getColumnName(i).equals("Data Type")) {
+                        dataTypeColumn = i;
+                        break;
+                    }
+                }
+
+                String dataType = dataTypeColumn >= 0 ? (String) table.getValueAt(row, dataTypeColumn) : "";
 
                 if (!cellValue.isEmpty() && !model.isValidSizeFormat(cellValue, dataType)) {
                     setBorder(BorderFactory.createLineBorder(Color.RED, 2));
@@ -274,5 +361,21 @@ public class FieldTableModel extends DefaultTableModel {
 
             return c;
         }
+    }
+
+    public void updateColumnOrder(TableColumnModel columnModel) {
+        currentColumnOrder = new ArrayList<>();
+        for (int viewIndex = 0; viewIndex < columnModel.getColumnCount(); viewIndex++) {
+            // 使用視圖索引獲取列名
+            int modelIndex = columnModel.getColumn(viewIndex).getModelIndex();
+            currentColumnOrder.add(COLUMN_NAMES[modelIndex]);
+        }
+    }
+
+    private int getActualColumnIndex(String columnName) {
+        if (currentColumnOrder != null) {
+            return currentColumnOrder.indexOf(columnName);
+        }
+        return Arrays.asList(COLUMN_NAMES).indexOf(columnName);
     }
 }

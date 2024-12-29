@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,8 +124,8 @@ public class GenerateAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    Structure structure, UserConfig config,
-                                    List<String> emptyClasses, ClassCounter counter) {
+            Structure structure, UserConfig config,
+            List<String> emptyClasses, ClassCounter counter) {
         // 生成當前類
         String classContent = new DtoClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
@@ -143,7 +144,7 @@ public class GenerateAction extends AnAction {
     }
 
     private void showCompletionNotification(Project project, int totalClasses, int successClasses,
-                                            List<String> emptyClasses) {
+            List<String> emptyClasses) {
         StringBuilder message = new StringBuilder()
                 .append(String.format("已成功生成 %d 個Class", successClasses));
 
@@ -162,7 +163,7 @@ public class GenerateAction extends AnAction {
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,
-                                 String className, String classContent) {
+            String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 
@@ -187,6 +188,11 @@ public class GenerateAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         e.getPresentation().setEnabledAndVisible(e.getProject() != null);
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 
     private static class ClassCounter {

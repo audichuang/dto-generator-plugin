@@ -18,6 +18,11 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 
 import javax.swing.*;
+import javax.swing.event.TableColumnModelListener;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionListener;
@@ -63,7 +68,34 @@ public class GeneratorDialog extends DialogWrapper {
         table.getColumnModel().getColumn(3).setCellRenderer(new FieldTableModel.ValidationCellRenderer());
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setDragEnabled(false);
+
+        // 添加列移動監聽器
         table.getTableHeader().setReorderingAllowed(true);
+        table.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+            @Override
+            public void columnMoved(TableColumnModelEvent e) {
+                if (e.getFromIndex() != e.getToIndex()) {
+                    tableModel.updateColumnOrder(table.getColumnModel());
+                }
+            }
+
+            @Override
+            public void columnAdded(TableColumnModelEvent e) {
+            }
+
+            @Override
+            public void columnRemoved(TableColumnModelEvent e) {
+            }
+
+            @Override
+            public void columnMarginChanged(ChangeEvent e) {
+            }
+
+            @Override
+            public void columnSelectionChanged(ListSelectionEvent e) {
+            }
+        });
+
         registerPasteAction(table);
         return table;
     }
@@ -157,7 +189,7 @@ public class GeneratorDialog extends DialogWrapper {
                             "請確認是否要繼續？",
                     unknownTypesStr);
 
-            String[] options = {"繼續", "取消"};
+            String[] options = { "繼續", "取消" };
             int result = Messages.showDialog(
                     message,
                     "警告",
