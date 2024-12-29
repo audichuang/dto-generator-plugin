@@ -1,9 +1,10 @@
 package com.catchaybk.dtogeneratorplugin.intellij.action;
 
-import com.catchaybk.dtogeneratorplugin.core.model.*;
-import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.DtoGeneratorDialog;
 import com.catchaybk.dtogeneratorplugin.core.analyzer.DtoStructureAnalyzer;
-import com.catchaybk.dtogeneratorplugin.core.generator.*;
+import com.catchaybk.dtogeneratorplugin.core.generator.DtoClassGenerator;
+import com.catchaybk.dtogeneratorplugin.core.model.DtoStructure;
+import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.DtoGeneratorDialog;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -122,8 +123,8 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-            DtoStructure structure, UserConfig config,
-            List<String> emptyClasses, ClassCounter counter) {
+                                    DtoStructure structure, UserConfig config,
+                                    List<String> emptyClasses, ClassCounter counter) {
         // 生成當前類
         String classContent = new DtoClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
@@ -142,7 +143,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void showCompletionNotification(Project project, int totalClasses, int successClasses,
-            List<String> emptyClasses) {
+                                            List<String> emptyClasses) {
         StringBuilder message = new StringBuilder()
                 .append(String.format("已成功生成 %d 個Class", successClasses));
 
@@ -161,7 +162,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,
-            String className, String classContent) {
+                                 String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 

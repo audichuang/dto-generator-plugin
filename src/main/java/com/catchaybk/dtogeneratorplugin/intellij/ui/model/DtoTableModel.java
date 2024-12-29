@@ -1,6 +1,5 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.model;
 
-
 import com.catchaybk.dtogeneratorplugin.core.config.DataTypeConfig;
 import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
 import com.intellij.openapi.ui.Messages;
@@ -12,8 +11,26 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 
+/**
+ * DTO表格數據模型
+ * 負責管理和驗證表格中的DTO字段數據
+ * 
+ * 主要功能：
+ * 1. 管理表格數據的增刪改查
+ * 2. 處理數據的驗證和格式化
+ * 3. 提供表格單元格的渲染邏輯
+ * 4. 處理剪貼板數據的導入
+ * 
+ * 表格列：
+ * - Level: 字段層級
+ * - Data Name: 字段名稱
+ * - Data Type: 數據類型
+ * - Size: 大小限制
+ * - Required: 是否必填
+ * - Comments: 註解說明
+ */
 public class DtoTableModel extends DefaultTableModel {
-    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
+    private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
@@ -24,7 +41,7 @@ public class DtoTableModel extends DefaultTableModel {
     }
 
     public void addEmptyRow() {
-        addRow(new Object[]{"", "", "", "", "", ""});
+        addRow(new Object[] { "", "", "", "", "", "" });
     }
 
     public void processClipboardData(String clipboardData) {

@@ -150,7 +150,7 @@ public class MainDTO {
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="DTO Generator Notifications"
-                         displayType="BALLOON"/>
+                           displayType="BALLOON"/>
     </extensions>
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->

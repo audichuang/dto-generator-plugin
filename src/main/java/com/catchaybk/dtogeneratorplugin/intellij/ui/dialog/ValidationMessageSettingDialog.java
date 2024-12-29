@@ -7,6 +7,23 @@ import com.intellij.ui.components.JBTextField;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * 驗證消息設置對話框
+ * 用於配置各種驗證註解的錯誤消息模板
+ * 
+ * 支持的驗證類型：
+ * 1. NotBlank - 字符串非空驗證
+ * 2. NotNull - 對象非空驗證
+ * 3. Size - 字符串長度驗證
+ * 4. Digits - 數字格式驗證
+ * 
+ * 每種驗證類型都支持變量替換：
+ * - ${name} - 屬性名稱
+ * - ${comment} - 註解說明
+ * - ${max} - 最大長度（僅用於Size）
+ * - ${integer} - 整數位數（僅用於Digits）
+ * - ${fraction} - 小數位數（僅用於Digits）
+ */
 public class ValidationMessageSettingDialog extends DialogWrapper {
     private static final String NOTBLANK_KEY = "dto.generator.validation.notblank";
     private static final String NOTNULL_KEY = "dto.generator.validation.notnull";

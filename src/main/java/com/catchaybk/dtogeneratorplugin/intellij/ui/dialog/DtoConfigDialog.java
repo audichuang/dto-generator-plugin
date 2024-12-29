@@ -437,6 +437,11 @@ public class DtoConfigDialog extends DialogWrapper {
         return names;
     }
 
+    public String getClassName(String typeName) {
+        JBTextField field = classNameFields.get(typeName);
+        return field != null ? field.getText().trim() : "";
+    }
+
     /**
      * 配置數據類
      * 存儲所有配置相關的初始值
@@ -555,10 +560,5 @@ public class DtoConfigDialog extends DialogWrapper {
             jsonAliasStyleList.setModel(model);
             jsonAliasStyleList.clearSelection();
         }
-    }
-
-    public String getClassName(String typeName) {
-        JBTextField field = classNameFields.get(typeName);
-        return field != null ? field.getText().trim() : "";
     }
 }

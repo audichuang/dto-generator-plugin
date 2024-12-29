@@ -2,15 +2,23 @@ package com.catchaybk.dtogeneratorplugin.core.generator;
 
 /**
  * DTO名稱生成器
- * 負責生成各種DTO相關的類名
+ * 負責根據不同條件生成DTO類的名稱
+ * 
+ * 命名規則：
+ * 1. 無電文ID時：
+ * - 主類：使用指定名稱或默認為 "MainDTO"
+ * - 子類：首字母大寫的字段名
+ * 2. 有電文ID時：
+ * - 主類：[電文ID] + [方向後綴(Tranrq/Tranrs)]
+ * - 子類：[電文ID] + [方向後綴] + [首字母大寫的字段名]
  */
 public class DtoNameGenerator {
     /**
      * 生成DTO類名
      *
-     * @param msgId       消息ID
-     * @param direction   電文方向
-     * @param baseName    基礎名稱
+     * @param msgId       消息ID，用於生成類名前綴
+     * @param direction   電文方向（上行/下行/無），決定類名後綴
+     * @param baseName    基礎名稱，用於子類命名
      * @param isMainClass 是否為主類
      * @return 生成的類名
      */
@@ -26,6 +34,12 @@ public class DtoNameGenerator {
         return isMainClass ? prefix + suffix : prefix + suffix + capitalizeFirstLetter(baseName);
     }
 
+    /**
+     * 將字符串的首字母轉為大寫
+     *
+     * @param input 輸入字符串
+     * @return 首字母大寫的字符串
+     */
     private static String capitalizeFirstLetter(String input) {
         if (input == null || input.isEmpty()) {
             return input;

@@ -2,14 +2,27 @@ package com.catchaybk.dtogeneratorplugin.core.model;
 
 import lombok.Getter;
 import lombok.Setter;
+
 import java.util.*;
 
+/**
+ * DTO字段模型類
+ * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
+ * 
+ * 主要功能：
+ * 1. 管理字段的基本信息（名稱、類型、大小等）
+ * 2. 處理字段類型的格式化和驗證
+ * 3. 提供字段相關的工具方法
+ * 4. 管理字段的導入聲明
+ */
 @Getter
 @Setter
 public class DtoField {
+    /** 類型導入映射表，用於管理需要特殊導入的類型 */
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
 
     static {
+        // 初始化需要特殊導入的類型
         TYPE_IMPORT_MAP.put("Timestamp", "java.sql.Timestamp");
         TYPE_IMPORT_MAP.put("BigDecimal", "java.math.BigDecimal");
         TYPE_IMPORT_MAP.put("LocalDate", "java.time.LocalDate");
@@ -18,19 +31,31 @@ public class DtoField {
         TYPE_IMPORT_MAP.put("List", "java.util.List");
     }
 
-    private final boolean isJava17;
-    private int level;
-    private String dataName;
-    private String dataType;
-    private String size;
-    private boolean required;
-    private String comments;
-    private String childClassName;
-    private boolean isObject;
-    private String requiredString;
+    // 字段屬性
+    private final boolean isJava17; // 是否使用 Java 17
+    private int level; // 字段層級
+    private String dataName; // 字段名稱
+    private String dataType; // 數據類型
+    private String size; // 大小限制
+    private boolean required; // 是否必填
+    private String comments; // 註解說明
+    private String childClassName; // 子類名稱（用於複雜類型）
+    private boolean isObject; // 是否為對象類型
+    private String requiredString; // 必填標記字符串
 
-    public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments,
-            boolean isJava17) {
+    /**
+     * 創建DTO字段實例
+     *
+     * @param level    字段層級
+     * @param dataName 字段名稱
+     * @param dataType 數據類型
+     * @param size     大小限制
+     * @param required 是否必填
+     * @param comments 註解說明
+     * @param isJava17 是否使用Java 17
+     */
+    public DtoField(int level, String dataName, String dataType, String size,
+            boolean required, String comments, boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;
@@ -41,13 +66,19 @@ public class DtoField {
         this.isObject = !isPrimitiveType(dataType);
     }
 
+    /**
+     * 判斷給定類型是否為原始類型
+     * 支持處理泛型類型，如 List<String>
+     *
+     * @param type 要判斷的類型
+     * @return 如果是原始類型返回true
+     */
     private boolean isPrimitiveType(String type) {
         if (type == null)
             return false;
 
         // 處理泛型類型，例如 List<String>
         if (type.toLowerCase().trim().startsWith("list<")) {
-            // 提取泛型參數，但保持原始大小寫
             String genericType = type.substring(type.indexOf('<') + 1, type.lastIndexOf('>')).trim();
             return isPrimitiveOrWrapperType(genericType);
         }
@@ -55,6 +86,16 @@ public class DtoField {
         return isPrimitiveOrWrapperType(type);
     }
 
+    /**
+     * 判斷類型是否為原始類型或其包裝類型
+     * 包括：
+     * 1. 基本類型（int, long等）
+     * 2. 包裝類型（Integer, Long等）
+     * 3. 常用類型（String, Date等）
+     *
+     * @param type 要判斷的類型
+     * @return 如果是原始類型或包裝類型返回true
+     */
     public boolean isPrimitiveOrWrapperType(String type) {
         Set<String> primitiveAndWrapperTypes = new HashSet<>(Arrays.asList(
                 "string", "String",
@@ -78,35 +119,55 @@ public class DtoField {
         return primitiveAndWrapperTypes.contains(type.toLowerCase());
     }
 
+    /**
+     * 判斷字段是否為List類型
+     * 支持兩種形式：
+     * 1. 純List類型
+     * 2. 帶泛型的List類型（如List<String>）
+     *
+     * @return 如果是List類型返回true
+     */
     public boolean isList() {
         if (dataType == null)
             return false;
         String type = dataType.trim();
-        return type.equalsIgnoreCase("list") || // 添加對純 List 的支援
+        return type.equalsIgnoreCase("list") ||
                 type.toLowerCase().startsWith("list<");
     }
 
+    /**
+     * 判斷字段是否為對象類型
+     * 包括：
+     * 1. 純對象類型
+     * 2. 純List類型（無泛型參數）
+     * 3. 包含非原始類型的List
+     *
+     * @return 如果是對象類型返回true
+     */
     public boolean isObject() {
         if (dataType == null)
             return false;
 
         String type = dataType.trim();
 
-        // 處理純 List 類型（沒有泛型參數）
         if (type.equalsIgnoreCase("list")) {
-            return true; // 沒有指定泛型的 List 應該被視為需要創建新類
+            return true; // 純List類型視為對象
         }
 
-        // 處理泛型類型
         if (type.startsWith("List<") || type.startsWith("list<")) {
             String genericType = type.substring(type.indexOf('<') + 1, type.lastIndexOf('>')).trim();
             return !isPrimitiveOrWrapperType(genericType);
         }
 
-        // 處理其他類型
         return type.equals("Object") || (!isPrimitiveType(type) && !isList());
     }
 
+    /**
+     * 獲取字段的駝峰命名形式
+     * 例如：USER_NAME -> userName
+     *
+     * @return 駝峰命名的字段名
+     */
     public String getCamelCaseName() {
         if (dataName == null || dataName.isEmpty()) {
             return "";
@@ -115,10 +176,24 @@ public class DtoField {
         return firstChar + (dataName.length() > 1 ? dataName.substring(1) : "");
     }
 
+    /**
+     * 獲取原始字段名
+     *
+     * @return 原始字段名
+     */
     public String getOriginalName() {
         return dataName;
     }
 
+    /**
+     * 獲取格式化後的數據類型
+     * 處理：
+     * 1. 子類類型
+     * 2. List類型的泛型
+     * 3. 基本類型的標準化
+     *
+     * @return 格式化後的類型名稱
+     */
     public String getFormattedDataType() {
         if (childClassName != null) {
             return isList() ? "List<" + childClassName + ">" : childClassName;

@@ -16,9 +16,9 @@ public class UserConfig {
     public final List<String> jsonAliasStyles;
 
     public UserConfig(List<DtoField> dtoFields, String mainClassName, String author,
-            String msgId, boolean isJava17, String messageDirectionComment,
-            Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage,
-            String jsonPropertyStyle, List<String> jsonAliasStyles) {
+                      String msgId, boolean isJava17, String messageDirectionComment,
+                      Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage,
+                      String jsonPropertyStyle, List<String> jsonAliasStyles) {
         this.dtoFields = dtoFields;
         this.mainClassName = mainClassName;
         this.author = author;
