@@ -1,7 +1,7 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.model;
 
-import com.catchaybk.dtogeneratorplugin.core.config.DataTypeConfig;
-import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.core.config.TypeRegistry;
+import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.intellij.openapi.ui.Messages;
 
 import javax.swing.*;
@@ -12,15 +12,15 @@ import java.util.List;
 import java.util.*;
 
 /**
- * DTO表格數據模型
- * 負責管理和驗證表格中的DTO字段數據
- * 
+ * 字段表格數據模型
+ * 負責管理和驗證表格中的字段數據
+ * <p>
  * 主要功能：
  * 1. 管理表格數據的增刪改查
  * 2. 處理數據的驗證和格式化
  * 3. 提供表格單元格的渲染邏輯
  * 4. 處理剪貼板數據的導入
- * 
+ * <p>
  * 表格列：
  * - Level: 字段層級
  * - Data Name: 字段名稱
@@ -29,19 +29,19 @@ import java.util.*;
  * - Required: 是否必填
  * - Comments: 註解說明
  */
-public class DtoTableModel extends DefaultTableModel {
-    private static final String[] COLUMN_NAMES = { "Level", "Data Name", "Data Type", "Size", "Required", "Comments" };
+public class FieldTableModel extends DefaultTableModel {
+    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
 
-    public DtoTableModel(boolean isJava17) {
+    public FieldTableModel(boolean isJava17) {
         super(COLUMN_NAMES, 0);
         this.isJava17 = isJava17;
     }
 
     public void addEmptyRow() {
-        addRow(new Object[] { "", "", "", "", "", "" });
+        addRow(new Object[]{"", "", "", "", "", ""});
     }
 
     public void processClipboardData(String clipboardData) {
@@ -126,8 +126,8 @@ public class DtoTableModel extends DefaultTableModel {
         return !columns[0].isEmpty() && !columns[1].isEmpty();
     }
 
-    public List<DtoField> getDtoFields() {
-        List<DtoField> fields = new ArrayList<>();
+    public List<Field> getDtoFields() {
+        List<Field> fields = new ArrayList<>();
         for (int i = 0; i < getRowCount(); i++) {
             try {
                 fields.add(createDtoField(i));
@@ -138,7 +138,7 @@ public class DtoTableModel extends DefaultTableModel {
         return fields;
     }
 
-    private DtoField createDtoField(int row) {
+    private Field createDtoField(int row) {
         int level = Integer.parseInt(getValueAt(row, 0).toString());
         String dataName = getValueAt(row, 1).toString();
         String dataType = getValueAt(row, 2).toString();
@@ -146,7 +146,7 @@ public class DtoTableModel extends DefaultTableModel {
         String requiredStr = getValueAt(row, 4).toString().trim();
         String comments = getValueAt(row, 5).toString();
 
-        DtoField field = new DtoField(level, dataName, dataType, size,
+        Field field = new Field(level, dataName, dataType, size,
                 "Y".equalsIgnoreCase(requiredStr), comments, isJava17);
         field.setRequiredString(requiredStr);
         return field;
@@ -173,7 +173,7 @@ public class DtoTableModel extends DefaultTableModel {
             // 檢查必填的 Data Type
             if (dataType == null || dataType.trim().isEmpty()) {
                 hasEmptyTypes = true;
-            } else if (!DataTypeConfig.isKnownType(dataType)) {
+            } else if (!TypeRegistry.isKnownType(dataType)) {
                 unknownTypesList.add(dataType);
             }
 
@@ -237,7 +237,7 @@ public class DtoTableModel extends DefaultTableModel {
             Component c = super.getTableCellRendererComponent(
                     table, value, isSelected, hasFocus, row, column);
 
-            DtoTableModel model = (DtoTableModel) table.getModel();
+            FieldTableModel model = (FieldTableModel) table.getModel();
             String cellValue = value != null ? value.toString().trim() : "";
             String columnName = table.getColumnName(column);
 
@@ -245,7 +245,7 @@ public class DtoTableModel extends DefaultTableModel {
                 if (cellValue.isEmpty()) {
                     setBorder(BorderFactory.createLineBorder(Color.RED, 2));
                     setToolTipText("數據類型不能為空（必填）");
-                } else if (!DataTypeConfig.isKnownType(cellValue)) {
+                } else if (!TypeRegistry.isKnownType(cellValue)) {
                     setBorder(BorderFactory.createLineBorder(Color.ORANGE, 2));
                     setToolTipText("未知的數據類型：" + cellValue + "（可能是新類型或輸入錯誤）");
                 } else {

@@ -1,8 +1,8 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
-import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
-import com.catchaybk.dtogeneratorplugin.intellij.ui.model.DtoTableModel;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.model.FieldTableModel;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
@@ -24,39 +24,43 @@ import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.*;
 
-public class DtoGeneratorDialog extends DialogWrapper {
+/**
+ * 生成器對話框
+ * 用於收集和驗證DTO生成所需的數據
+ */
+public class GeneratorDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
 
-    private final DtoTableModel tableModel;
+    private final FieldTableModel tableModel;
     private final JBTable table;
     private final Project project;
-    private DtoConfigDialog configDialog;
+    private ConfigDialog configDialog;
     private boolean configurationDone = false;
 
-    // Configuration state
+    // 配置狀態
     private Map<Integer, Map<String, String>> levelClassNamesMap = new HashMap<>();
     private String author;
-    private String mainClassName = "MainDTO";
+    private String mainClassName = "Main";
     private boolean isJava17;
     private String msgId;
     private boolean isUpstream = true;
 
-    public DtoGeneratorDialog(Project project) {
+    public GeneratorDialog(Project project) {
         super(true);
         this.project = project;
         this.isJava17 = false;
-        this.tableModel = new DtoTableModel(isJava17);
+        this.tableModel = new FieldTableModel(isJava17);
         this.table = createTable();
 
         init();
-        setTitle("DTO Generator");
+        setTitle("Generator");
         loadRememberedAuthor();
     }
 
     private JBTable createTable() {
         JBTable table = new JBTable(tableModel);
-        table.getColumnModel().getColumn(2).setCellRenderer(new DtoTableModel.ValidationCellRenderer());
-        table.getColumnModel().getColumn(3).setCellRenderer(new DtoTableModel.ValidationCellRenderer());
+        table.getColumnModel().getColumn(2).setCellRenderer(new FieldTableModel.ValidationCellRenderer());
+        table.getColumnModel().getColumn(3).setCellRenderer(new FieldTableModel.ValidationCellRenderer());
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setDragEnabled(false);
         table.getTableHeader().setReorderingAllowed(true);
@@ -173,8 +177,8 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
     }
 
-    private DtoConfigDialog createConfigDialog() {
-        return new DtoConfigDialog(
+    private ConfigDialog createConfigDialog() {
+        return new ConfigDialog(
                 msgId,
                 author,
                 mainClassName,
@@ -201,11 +205,11 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
         // 更新類名映射
         levelClassNamesMap.clear();
-        Map<Integer, List<DtoField>> fieldsByLevel = groupFieldsByLevel(tableModel.getDtoFields());
+        Map<Integer, List<Field>> fieldsByLevel = groupFieldsByLevel(tableModel.getDtoFields());
 
-        for (Map.Entry<Integer, List<DtoField>> entry : fieldsByLevel.entrySet()) {
+        for (Map.Entry<Integer, List<Field>> entry : fieldsByLevel.entrySet()) {
             Map<String, String> levelMap = new HashMap<>();
-            for (DtoField field : entry.getValue()) {
+            for (Field field : entry.getValue()) {
                 if (field.isObject()) {
                     // 使用配置對話框中的類名
                     String className = configDialog.getClassName(field.getCapitalizedName());
@@ -225,9 +229,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
         }
     }
 
-    private Map<Integer, List<DtoField>> groupFieldsByLevel(List<DtoField> fields) {
-        Map<Integer, List<DtoField>> result = new HashMap<>();
-        for (DtoField field : fields) {
+    private Map<Integer, List<Field>> groupFieldsByLevel(List<Field> fields) {
+        Map<Integer, List<Field>> result = new HashMap<>();
+        for (Field field : fields) {
             result.computeIfAbsent(field.getLevel(), k -> new ArrayList<>()).add(field);
         }
         return result;
@@ -235,9 +239,9 @@ public class DtoGeneratorDialog extends DialogWrapper {
 
     private Map<Integer, List<String>> collectLevelTypes() {
         Map<Integer, List<String>> levelTypesMap = new TreeMap<>();
-        List<DtoField> fields = tableModel.getDtoFields();
+        List<Field> fields = tableModel.getDtoFields();
 
-        for (DtoField field : fields) {
+        for (Field field : fields) {
             if (field.isObject()) {
                 levelTypesMap
                         .computeIfAbsent(field.getLevel(), k -> new ArrayList<>())
@@ -304,7 +308,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
     }
 
     // Getters
-    public List<DtoField> getDtoFields() {
+    public List<Field> getDtoFields() {
         return tableModel.getDtoFields();
     }
 

@@ -6,9 +6,9 @@ import lombok.Setter;
 import java.util.*;
 
 /**
- * DTO字段模型類
+ * 字段模型類
  * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
- * 
+ * <p>
  * 主要功能：
  * 1. 管理字段的基本信息（名稱、類型、大小等）
  * 2. 處理字段類型的格式化和驗證
@@ -17,8 +17,10 @@ import java.util.*;
  */
 @Getter
 @Setter
-public class DtoField {
-    /** 類型導入映射表，用於管理需要特殊導入的類型 */
+public class Field {
+    /**
+     * 類型導入映射表，用於管理需要特殊導入的類型
+     */
     private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
 
     static {
@@ -54,8 +56,8 @@ public class DtoField {
      * @param comments 註解說明
      * @param isJava17 是否使用Java 17
      */
-    public DtoField(int level, String dataName, String dataType, String size,
-            boolean required, String comments, boolean isJava17) {
+    public Field(int level, String dataName, String dataType, String size,
+                 boolean required, String comments, boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;

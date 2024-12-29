@@ -1,7 +1,7 @@
 package com.catchaybk.dtogeneratorplugin.core.analyzer;
 
-import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
-import com.catchaybk.dtogeneratorplugin.core.model.DtoStructure;
+import com.catchaybk.dtogeneratorplugin.core.model.Field;
+import com.catchaybk.dtogeneratorplugin.core.model.Structure;
 
 import java.util.*;
 
@@ -9,44 +9,44 @@ import java.util.*;
  * DTO結構分析器
  * 負責分析DTO字段之間的層級關係並建立結構樹
  */
-public class DtoStructureAnalyzer {
-    private final List<DtoField> allFields;
+public class StructureAnalyzer {
+    private final List<Field> allFields;
     private final String mainClassName;
     private final Map<Integer, Map<String, String>> levelClassNamesMap;
 
-    public DtoStructureAnalyzer(List<DtoField> allFields, String mainClassName,
-                                Map<Integer, Map<String, String>> levelClassNamesMap) {
+    public StructureAnalyzer(List<Field> allFields, String mainClassName,
+                             Map<Integer, Map<String, String>> levelClassNamesMap) {
         this.allFields = allFields;
         this.mainClassName = mainClassName;
         this.levelClassNamesMap = levelClassNamesMap;
     }
 
-    public DtoStructure analyze() {
+    public Structure analyze() {
         int minLevel = findMinLevel();
-        DtoStructure mainStructure = new DtoStructure(mainClassName);
-        Map<Integer, Map<String, DtoStructure>> levelStructures = initializeLevelStructures(minLevel, mainStructure);
+        Structure mainStructure = new Structure(mainClassName);
+        Map<Integer, Map<String, Structure>> levelStructures = initializeLevelStructures(minLevel, mainStructure);
         processFieldsByLevel(levelStructures, minLevel);
         return mainStructure;
     }
 
     private int findMinLevel() {
         return allFields.stream()
-                .mapToInt(DtoField::getLevel)
+                .mapToInt(Field::getLevel)
                 .min()
                 .orElse(1);
     }
 
-    private Map<Integer, Map<String, DtoStructure>> initializeLevelStructures(int minLevel,
-                                                                              DtoStructure mainStructure) {
-        Map<Integer, Map<String, DtoStructure>> levelStructures = new HashMap<>();
-        Map<String, DtoStructure> currentLevelStructures = new HashMap<>();
+    private Map<Integer, Map<String, Structure>> initializeLevelStructures(int minLevel,
+                                                                           Structure mainStructure) {
+        Map<Integer, Map<String, Structure>> levelStructures = new HashMap<>();
+        Map<String, Structure> currentLevelStructures = new HashMap<>();
         levelStructures.put(minLevel, currentLevelStructures);
         currentLevelStructures.put("main", mainStructure);
         return levelStructures;
     }
 
-    private void processFieldsByLevel(Map<Integer, Map<String, DtoStructure>> levelStructures, int minLevel) {
-        Map<Integer, List<DtoField>> levelFields = groupFieldsByLevel();
+    private void processFieldsByLevel(Map<Integer, Map<String, Structure>> levelStructures, int minLevel) {
+        Map<Integer, List<Field>> levelFields = groupFieldsByLevel();
         Set<Integer> levels = new TreeSet<>(levelFields.keySet());
 
         for (Integer level : levels) {
@@ -54,23 +54,23 @@ public class DtoStructureAnalyzer {
         }
     }
 
-    private Map<Integer, List<DtoField>> groupFieldsByLevel() {
-        Map<Integer, List<DtoField>> levelFields = new HashMap<>();
-        for (DtoField field : allFields) {
+    private Map<Integer, List<Field>> groupFieldsByLevel() {
+        Map<Integer, List<Field>> levelFields = new HashMap<>();
+        for (Field field : allFields) {
             levelFields.computeIfAbsent(field.getLevel(), k -> new ArrayList<>()).add(field);
         }
         return levelFields;
     }
 
-    private void processLevelFields(Integer level, List<DtoField> fields,
-                                    Map<Integer, Map<String, DtoStructure>> levelStructures, int minLevel) {
+    private void processLevelFields(Integer level, List<Field> fields,
+                                    Map<Integer, Map<String, Structure>> levelStructures, int minLevel) {
         if (fields == null)
             return;
 
-        Map<String, DtoStructure> currentLevelStructures = levelStructures.computeIfAbsent(level, k -> new HashMap<>());
+        Map<String, Structure> currentLevelStructures = levelStructures.computeIfAbsent(level, k -> new HashMap<>());
 
-        for (DtoField field : fields) {
-            DtoStructure parentStructure = findParentStructure(field, level, minLevel, levelStructures);
+        for (Field field : fields) {
+            Structure parentStructure = findParentStructure(field, level, minLevel, levelStructures);
             if (parentStructure == null)
                 continue;
 
@@ -83,26 +83,26 @@ public class DtoStructureAnalyzer {
         }
     }
 
-    private DtoStructure findParentStructure(DtoField field, Integer level, int minLevel,
-                                             Map<Integer, Map<String, DtoStructure>> levelStructures) {
+    private Structure findParentStructure(Field field, Integer level, int minLevel,
+                                          Map<Integer, Map<String, Structure>> levelStructures) {
         if (level == minLevel) {
             return levelStructures.get(minLevel).get("main");
         }
 
-        DtoField parentField = findParentField(field);
+        Field parentField = findParentField(field);
         if (parentField == null)
             return null;
 
-        Map<String, DtoStructure> parentLevelStructures = levelStructures.get(level - 1);
+        Map<String, Structure> parentLevelStructures = levelStructures.get(level - 1);
         return parentLevelStructures.get(parentField.getDataName());
     }
 
-    private DtoField findParentField(DtoField currentField) {
+    private Field findParentField(Field currentField) {
         int currentIndex = allFields.indexOf(currentField);
         int targetLevel = currentField.getLevel() - 1;
 
         for (int i = currentIndex - 1; i >= 0; i--) {
-            DtoField field = allFields.get(i);
+            Field field = allFields.get(i);
             if (field.getLevel() == targetLevel && (field.isObject() || field.isList())) {
                 return field;
             }
@@ -113,18 +113,18 @@ public class DtoStructureAnalyzer {
         return null;
     }
 
-    private void processComplexField(DtoField field, Integer level,
-                                     DtoStructure parentStructure, Map<String, DtoStructure> currentLevelStructures) {
+    private void processComplexField(Field field, Integer level,
+                                     Structure parentStructure, Map<String, Structure> currentLevelStructures) {
         String className = determineClassName(field, level);
         field.setChildClassName(className);
         updateFieldDataType(field);
 
-        DtoStructure childStructure = new DtoStructure(className);
+        Structure childStructure = new Structure(className);
         parentStructure.addChildStructure(childStructure, field);
         currentLevelStructures.put(field.getDataName(), childStructure);
     }
 
-    private String determineClassName(DtoField field, Integer level) {
+    private String determineClassName(Field field, Integer level) {
         Map<String, String> levelMap = levelClassNamesMap.get(level);
         if (levelMap != null) {
             String configuredClassName = levelMap.get(field.getDataName());
@@ -143,7 +143,7 @@ public class DtoStructureAnalyzer {
         return field.getDataName() + "DTO";
     }
 
-    private void updateFieldDataType(DtoField field) {
+    private void updateFieldDataType(Field field) {
         if (field.isList()) {
             field.setDataType("List<" + field.getChildClassName() + ">");
         } else {
@@ -151,7 +151,7 @@ public class DtoStructureAnalyzer {
         }
     }
 
-    private boolean shouldCreateNewStructure(DtoField field) {
+    private boolean shouldCreateNewStructure(Field field) {
         if (!field.isObject() && !field.isList()) {
             return false;
         }
@@ -180,15 +180,15 @@ public class DtoStructureAnalyzer {
         simpleTypes.addAll(Arrays.asList(
                 "BigDecimal", "BigInteger", "Date", "LocalDate", "LocalDateTime"));
 
-        DtoField tempField = new DtoField(0, "", type, "", false, "", false);
+        Field tempField = new Field(0, "", type, "", false, "", false);
         String formattedType = tempField.getFormattedDataType();
 
         return simpleTypes.contains(formattedType);
     }
 
-    private void updateSimpleListDataType(DtoField field) {
+    private void updateSimpleListDataType(Field field) {
         String genericType = extractGenericType(field.getDataType());
-        DtoField tempField = new DtoField(0, "", genericType, "", false, "", false);
+        Field tempField = new Field(0, "", genericType, "", false, "", false);
         String formattedType = tempField.getFormattedDataType();
         field.setDataType("List<" + formattedType + ">");
     }

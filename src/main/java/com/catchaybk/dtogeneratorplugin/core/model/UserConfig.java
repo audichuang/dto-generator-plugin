@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public class UserConfig {
-    public final List<DtoField> dtoFields;
+    public final List<Field> fields;
     public final String mainClassName;
     public final String author;
     public final String msgId;
@@ -15,11 +15,11 @@ public class UserConfig {
     public final String jsonPropertyStyle;
     public final List<String> jsonAliasStyles;
 
-    public UserConfig(List<DtoField> dtoFields, String mainClassName, String author,
+    public UserConfig(List<Field> fields, String mainClassName, String author,
                       String msgId, boolean isJava17, String messageDirectionComment,
                       Map<Integer, Map<String, String>> levelClassNamesMap, String targetPackage,
                       String jsonPropertyStyle, List<String> jsonAliasStyles) {
-        this.dtoFields = dtoFields;
+        this.fields = fields;
         this.mainClassName = mainClassName;
         this.author = author;
         this.msgId = msgId;

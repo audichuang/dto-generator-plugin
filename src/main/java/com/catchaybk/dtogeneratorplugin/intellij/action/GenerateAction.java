@@ -1,10 +1,10 @@
 package com.catchaybk.dtogeneratorplugin.intellij.action;
 
-import com.catchaybk.dtogeneratorplugin.core.analyzer.DtoStructureAnalyzer;
+import com.catchaybk.dtogeneratorplugin.core.analyzer.StructureAnalyzer;
 import com.catchaybk.dtogeneratorplugin.core.generator.DtoClassGenerator;
-import com.catchaybk.dtogeneratorplugin.core.model.DtoStructure;
+import com.catchaybk.dtogeneratorplugin.core.model.Structure;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
-import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.DtoGeneratorDialog;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.GeneratorDialog;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GenerateDTOAction extends AnAction {
+public class GenerateAction extends AnAction {
     private String targetPackage;
 
     @Override
@@ -33,7 +33,7 @@ public class GenerateDTOAction extends AnAction {
             return;
 
         // 顯示配置對話框
-        DtoGeneratorDialog dialog = new DtoGeneratorDialog(project);
+        GeneratorDialog dialog = new GeneratorDialog(project);
         if (!dialog.showAndGet())
             return;
 
@@ -98,8 +98,8 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateDtoClasses(Project project, PsiDirectory directory, UserConfig config) {
-        DtoStructure mainStructure = new DtoStructureAnalyzer(
-                config.dtoFields,
+        Structure mainStructure = new StructureAnalyzer(
+                config.fields,
                 config.mainClassName,
                 config.levelClassNamesMap).analyze();
 
@@ -123,7 +123,7 @@ public class GenerateDTOAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-                                    DtoStructure structure, UserConfig config,
+                                    Structure structure, UserConfig config,
                                     List<String> emptyClasses, ClassCounter counter) {
         // 生成當前類
         String classContent = new DtoClassGenerator(targetPackage, config)
@@ -131,7 +131,7 @@ public class GenerateDTOAction extends AnAction {
         createJavaClass(project, directory, structure.getClassName(), classContent);
 
         // 檢查子類
-        for (DtoStructure childStructure : structure.getChildStructures()) {
+        for (Structure childStructure : structure.getChildStructures()) {
             counter.totalClasses++;
             if (childStructure.getFields().isEmpty()) {
                 emptyClasses.add(childStructure.getClassName());

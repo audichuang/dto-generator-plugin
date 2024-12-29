@@ -2,7 +2,7 @@ package com.catchaybk.dtogeneratorplugin.core.model;
 
 import java.util.Map;
 
-public class DtoConfigData {
+public class ConfigData {
     private final String targetPackage;
     private final String msgId;
     private final String author;
@@ -11,8 +11,8 @@ public class DtoConfigData {
     private final Map<String, String> classNames;
     private final String mainClassName;
 
-    public DtoConfigData(String targetPackage, String msgId, String author,
-                         boolean isJava17, String messageDirection, Map<String, String> classNames) {
+    public ConfigData(String targetPackage, String msgId, String author,
+                      boolean isJava17, String messageDirection, Map<String, String> classNames) {
         this.targetPackage = targetPackage;
         this.msgId = msgId;
         this.author = author;

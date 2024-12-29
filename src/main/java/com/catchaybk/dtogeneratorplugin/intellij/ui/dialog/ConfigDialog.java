@@ -1,9 +1,8 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
 import com.catchaybk.dtogeneratorplugin.core.generator.DtoNameGenerator;
-import com.catchaybk.dtogeneratorplugin.core.model.DtoConfigData;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.DtoConfigPanelFactory;
-import com.catchaybk.dtogeneratorplugin.intellij.validator.DtoConfigValidator;
+import com.catchaybk.dtogeneratorplugin.intellij.validator.ConfigValidator;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
@@ -32,12 +31,12 @@ import java.util.stream.Collectors;
  * 2. 電文相關配置（MSGID、電文方向等）
  * 3. 類名配置（主類名和各層級類名）
  */
-public class DtoConfigDialog extends DialogWrapper {
+public class ConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
-    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
+    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
+    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 600;
@@ -79,9 +78,9 @@ public class DtoConfigDialog extends DialogWrapper {
      * @param project        當前項目
      * @param initialPackage 初始包路徑
      */
-    public DtoConfigDialog(String msgId, String author, String mainClassName,
-                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-                           Project project, String initialPackage) {
+    public ConfigDialog(String msgId, String author, String mainClassName,
+            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+            Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -402,15 +401,17 @@ public class DtoConfigDialog extends DialogWrapper {
 
     @Override
     protected ValidationInfo doValidate() {
-        // 使用驗證器進行驗證
-        DtoConfigData configData = new DtoConfigData(
-                getTargetPackage(),
-                getMsgId(),
-                getAuthor(),
-                isJava17(),
-                getMessageDirection(),
-                getCurrentClassNames());
-        return DtoConfigValidator.validate(configData, ui.mainClassField);
+        // 只驗證必要的字段
+        if (getTargetPackage().trim().isEmpty()) {
+            return new ValidationInfo("請選擇目標包路徑", ui.mainClassField);
+        }
+        if (getMainClassName().trim().isEmpty()) {
+            return new ValidationInfo("主類名不能為空", ui.mainClassField);
+        }
+        if (getAuthor().trim().isEmpty()) {
+            return new ValidationInfo("請輸入作者名稱", ui.mainClassField);
+        }
+        return null;
     }
 
     @Override
@@ -455,7 +456,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                   boolean isJava17, boolean isUpstream, String initialPackage) {
+                boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;

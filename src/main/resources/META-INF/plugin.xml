@@ -155,14 +155,14 @@ public class MainDTO {
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <actions>
-        <action id="com.catchaybk.dtogeneratorplugin.GenerateDTOAction"
-                class="com.catchaybk.dtogeneratorplugin.intellij.action.GenerateDTOAction"
-                text="Generate DTO"
-                description="從結構化資料生成 DTO 類">
-            <add-to-group group-id="GenerateGroup" anchor="first"/>
-            <keyboard-shortcut first-keystroke="control alt D" keymap="$default"/>
-        </action>
-    </actions>
+    <action id="com.catchaybk.dtogeneratorplugin.intellij.action.GenerateAction"
+            class="com.catchaybk.dtogeneratorplugin.intellij.action.GenerateAction"
+            text="Generate DTO"
+            description="從結構化資料生成 DTO 類">
+        <add-to-group group-id="GenerateGroup" anchor="first"/>
+        <keyboard-shortcut first-keystroke="control alt D" keymap="$default"/>
+    </action>
+</actions>
 
 
 </idea-plugin>

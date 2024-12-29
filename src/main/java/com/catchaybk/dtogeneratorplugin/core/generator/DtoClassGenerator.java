@@ -1,6 +1,6 @@
 package com.catchaybk.dtogeneratorplugin.core.generator;
 
-import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 
@@ -22,7 +22,7 @@ public class DtoClassGenerator {
         this.config = config;
     }
 
-    public String generateClass(String className, List<DtoField> fields) {
+    public String generateClass(String className, List<Field> fields) {
         StringBuilder sb = new StringBuilder();
         generatePackageDeclaration(sb);
         generateImports(sb, fields);
@@ -37,7 +37,7 @@ public class DtoClassGenerator {
         }
     }
 
-    private void generateImports(StringBuilder sb, List<DtoField> fields) {
+    private void generateImports(StringBuilder sb, List<Field> fields) {
         Set<String> imports = collectImports(fields);
         imports.stream()
                 .sorted()
@@ -45,7 +45,7 @@ public class DtoClassGenerator {
         sb.append("\n");
     }
 
-    private Set<String> collectImports(List<DtoField> fields) {
+    private Set<String> collectImports(List<Field> fields) {
         Set<String> imports = new HashSet<>();
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
 
@@ -57,7 +57,7 @@ public class DtoClassGenerator {
 
         String validationPackage = config.isJava17 ? "jakarta.validation" : "javax.validation";
 
-        for (DtoField field : fields) {
+        for (Field field : fields) {
             // 添加字段本身需要的導入
             imports.addAll(field.getRequiredImports());
 
@@ -101,15 +101,15 @@ public class DtoClassGenerator {
         }
     }
 
-    private void generateClassDefinition(StringBuilder sb, String className, List<DtoField> fields) {
+    private void generateClassDefinition(StringBuilder sb, String className, List<Field> fields) {
         sb.append("@Data\n");
         sb.append("public class ").append(className).append(" {\n\n");
         generateFields(sb, fields);
         sb.append("}\n");
     }
 
-    private void generateFields(StringBuilder sb, List<DtoField> fields) {
-        for (DtoField field : fields) {
+    private void generateFields(StringBuilder sb, List<Field> fields) {
+        for (Field field : fields) {
             generateFieldComment(sb, field);
             generateFieldAnnotations(sb, field);
             generateFieldDeclaration(sb, field);
@@ -117,13 +117,13 @@ public class DtoClassGenerator {
         }
     }
 
-    private void generateFieldComment(StringBuilder sb, DtoField field) {
+    private void generateFieldComment(StringBuilder sb, Field field) {
         if (field.getComments() != null && !field.getComments().isEmpty()) {
             sb.append("    /** ").append(field.getComments()).append(" */\n");
         }
     }
 
-    private void generateFieldAnnotations(StringBuilder sb, DtoField field) {
+    private void generateFieldAnnotations(StringBuilder sb, Field field) {
         if (field.isRequired()) {
             if (field.getDataType().toLowerCase().contains("string")) {
                 sb.append("    @NotBlank(message = \"")
@@ -186,7 +186,7 @@ public class DtoClassGenerator {
         }
     }
 
-    private void generateFieldDeclaration(StringBuilder sb, DtoField field) {
+    private void generateFieldDeclaration(StringBuilder sb, Field field) {
         sb.append("    private ")
                 .append(field.getFormattedDataType())
                 .append(" ")
