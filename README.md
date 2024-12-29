@@ -42,11 +42,18 @@ JSON 轉換功能。
 
 ## 安裝方法
 
-1. 打開 IntelliJ IDEA
-2. 進入 `Settings/Preferences → Plugins`
-3. 選擇 `Marketplace` 標籤
-4. 搜索 "DTO Generator Pro"
-5. 點擊 `Install` 安裝
+1. 下載插件
+    - 前往 [Releases](插件的release網址) 頁面
+    - 下載最新版本的 `DTO-Generator-Pro.jar` 檔案
+
+2. 在 IntelliJ IDEA 中安裝
+    - 打開 IntelliJ IDEA
+    - 進入 `Settings/Preferences → Plugins`
+    - 點擊齒輪圖示 ⚙️，選擇 `Install Plugin from Disk...`
+    - 選擇剛才下載的 `DTO-Generator-Pro.jar` 檔案
+    - 點擊 `OK` 並重新啟動 IDE
+
+3. 完成安裝後，重新啟動 IntelliJ IDEA 即可使用插件功能。
 
 ## 使用說明
 
@@ -103,14 +110,14 @@ java
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.;
 import lombok.Data;
-/
-用戶資料 DTO
-@author YourName
-/
 
+/**
+ * 用戶資料 DTO
+ * @author YourName
+ */
 @Data
 public class UserDTO {
-/使用者名稱 /
+
     @NotBlank(message = "使用者名稱不能為空")
     @Size(max = 50, message = "使用者名稱長度不得超過50")
     @Pattern(regexp = "[A-Za-z0-9]+", message = "使用者名稱只能包含字母和數字")
