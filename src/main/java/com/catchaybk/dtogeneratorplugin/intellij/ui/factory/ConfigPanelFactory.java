@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * DTO配置面板工廠類
+ * 配置面板工廠類
  * 負責創建各種配置面板
  */
-public class DtoConfigPanelFactory {
+public class ConfigPanelFactory {
     private static final int LABEL_WIDTH = 100;
     private static final int FIELD_HEIGHT = 30;
 

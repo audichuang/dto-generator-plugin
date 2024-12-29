@@ -1,8 +1,7 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
 import com.catchaybk.dtogeneratorplugin.core.generator.DtoNameGenerator;
-import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.DtoConfigPanelFactory;
-import com.catchaybk.dtogeneratorplugin.intellij.validator.ConfigValidator;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.ConfigPanelFactory;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
@@ -35,8 +34,8 @@ public class ConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
-    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
+    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
+    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 600;
@@ -79,8 +78,8 @@ public class ConfigDialog extends DialogWrapper {
      * @param initialPackage 初始包路徑
      */
     public ConfigDialog(String msgId, String author, String mainClassName,
-            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-            Project project, String initialPackage) {
+                        boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+                        Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -128,14 +127,14 @@ public class ConfigDialog extends DialogWrapper {
         };
 
         // 創建基本配置面板
-        JPanel basicPanel = DtoConfigPanelFactory.createBasicConfigPanel(components, labels);
+        JPanel basicPanel = ConfigPanelFactory.createBasicConfigPanel(components, labels);
 
         // 初始化電文ID面板
         addFormRow(ui.tranIdPanel, "電文ID:", ui.tranIdField, createDefaultConstraints(), 0);
         ui.tranIdPanel.setVisible(false);
 
         // 創建類型配置面板
-        JPanel configPanel = DtoConfigPanelFactory.createTypeConfigPanel(levelTypesMap, classNameFields);
+        JPanel configPanel = ConfigPanelFactory.createTypeConfigPanel(levelTypesMap, classNameFields);
 
         // 使用 BoxLayout 來控制垂直布局
         JPanel contentPanel = new JPanel();
@@ -456,7 +455,7 @@ public class ConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                boolean isJava17, boolean isUpstream, String initialPackage) {
+                   boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;
