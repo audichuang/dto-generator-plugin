@@ -34,11 +34,11 @@ public class ConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
-    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
+    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
+    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
-    private static final int SCROLL_WIDTH = 600;
+    private static final int SCROLL_WIDTH = 800;
     private static final int SCROLL_HEIGHT = 600;
     private static final String[] JSON_STYLES = {
             "原始格式 (studentName -> studentName)",
@@ -78,8 +78,8 @@ public class ConfigDialog extends DialogWrapper {
      * @param initialPackage 初始包路徑
      */
     public ConfigDialog(String msgId, String author, String mainClassName,
-                        boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-                        Project project, String initialPackage) {
+            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+            Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -351,17 +351,17 @@ public class ConfigDialog extends DialogWrapper {
         return new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                updateAllClassNames();
+                SwingUtilities.invokeLater(() -> updateAllClassNames());
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                updateAllClassNames();
+                SwingUtilities.invokeLater(() -> updateAllClassNames());
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                updateAllClassNames();
+                SwingUtilities.invokeLater(() -> updateAllClassNames());
             }
         };
     }
@@ -455,7 +455,7 @@ public class ConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                   boolean isJava17, boolean isUpstream, String initialPackage) {
+                boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;

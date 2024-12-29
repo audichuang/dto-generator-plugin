@@ -5,6 +5,8 @@ import lombok.Setter;
 
 import java.util.*;
 
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
+
 /**
  * 字段模型類
  * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
@@ -44,6 +46,7 @@ public class Field {
     private String childClassName; // 子類名稱（用於複雜類型）
     private boolean isObject; // 是否為對象類型
     private String requiredString; // 必填標記字符串
+    private String pattern;
 
     /**
      * 創建DTO字段實例
@@ -54,16 +57,18 @@ public class Field {
      * @param size     大小限制
      * @param required 是否必填
      * @param comments 註解說明
+     * @param pattern  驗證模式
      * @param isJava17 是否使用Java 17
      */
     public Field(int level, String dataName, String dataType, String size,
-                 boolean required, String comments, boolean isJava17) {
+            boolean required, String comments, String pattern, boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;
         this.size = size;
         this.required = required;
         this.comments = comments;
+        this.pattern = pattern;
         this.isJava17 = isJava17;
         this.isObject = !isPrimitiveType(dataType);
     }
@@ -241,6 +246,8 @@ public class Field {
 
     public Set<String> getRequiredImports() {
         Set<String> imports = new HashSet<>();
+        String validationPackage = isJava17 ? "jakarta.validation.constraints" : "javax.validation.constraints";
+
         if (dataType != null) {
             String lowerType = dataType.toLowerCase();
             if (lowerType.startsWith("list")) {
@@ -253,11 +260,18 @@ public class Field {
                 imports.add("java.math.BigDecimal");
             }
 
-            // 果有 size 格式，添加 Digits 註解
-            if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal"))
-                    && !size.isEmpty()) {
-                // 根據 Java 版本選擇正確的包
-                String validationPackage = isJava17 ? "jakarta.validation.constraints" : "javax.validation.constraints";
+            // 添加 Pattern 相關的導入
+            if (pattern != null && !pattern.isEmpty()) {
+                imports.add(validationPackage + ".Pattern");
+            }
+
+            // 添加其他驗證註解的導入
+            if (required) {
+                imports.add(validationPackage + ".NotNull");
+            }
+
+            // 添加 Digits 註解的導入
+            if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal")) && !size.isEmpty()) {
                 imports.add(validationPackage + ".Digits");
             }
         }
@@ -313,6 +327,41 @@ public class Field {
         }
 
         return camelCase.toString();
+    }
+
+    /**
+     * 獲取驗證註解
+     *
+     * @return 驗證註解字符串
+     */
+    public String getValidationAnnotations() {
+        List<String> annotations = new ArrayList<>();
+
+        // 添加 Pattern 註解
+        if (pattern != null && !pattern.isEmpty()) {
+            annotations.add(String.format("@Pattern(regexp = \"%s\", message = \"%s\")",
+                    pattern,
+                    ValidationMessageSettingDialog.getPatternMessage(getCamelCaseName(), comments)));
+        }
+
+        // 添加其他驗證註解
+        if (required) {
+            annotations.add(String.format("@NotNull(message = \"%s\")",
+                    ValidationMessageSettingDialog.getNotNullMessage(getCamelCaseName(), comments)));
+        }
+
+        // 添加 Digits 註解
+        if (dataType != null && (dataType.equalsIgnoreCase("decimal") ||
+                dataType.equalsIgnoreCase("bigdecimal")) && !size.isEmpty()) {
+            String[] parts = size.split(",");
+            String integer = parts[0];
+            String fraction = parts.length > 1 ? parts[1] : "0";
+            annotations.add(String.format("@Digits(integer = %s, fraction = %s, message = \"%s\")",
+                    integer, fraction,
+                    ValidationMessageSettingDialog.getDigitsMessage(getCamelCaseName(), comments, size)));
+        }
+
+        return String.join("\n    ", annotations);
     }
 
 }

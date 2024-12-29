@@ -71,10 +71,15 @@ public class GeneratorDialog extends DialogWrapper {
 
         // 添加列移動監聽器
         table.getTableHeader().setReorderingAllowed(true);
+        table.getColumnModel().getColumn(6).setResizable(false);
         table.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
             @Override
             public void columnMoved(TableColumnModelEvent e) {
-                if (e.getFromIndex() != e.getToIndex()) {
+                if (e.getFromIndex() == 6 || e.getToIndex() == 6) {
+                    SwingUtilities.invokeLater(() -> {
+                        table.moveColumn(e.getToIndex(), 6);
+                    });
+                } else if (e.getFromIndex() != e.getToIndex()) {
                     tableModel.updateColumnOrder(table.getColumnModel());
                 }
             }
@@ -154,7 +159,7 @@ public class GeneratorDialog extends DialogWrapper {
                 showConfigurationReminder();
             }
         } catch (Exception ex) {
-            Messages.showErrorDialog(project, "粘貼數據時發生錯誤: " + ex.getMessage(), "錯誤");
+            Messages.showErrorDialog(project, "貼上數據時發生錯誤: " + ex.getMessage(), "錯誤");
         }
     }
 

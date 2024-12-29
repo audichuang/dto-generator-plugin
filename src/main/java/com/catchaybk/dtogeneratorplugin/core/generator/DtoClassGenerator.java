@@ -4,6 +4,7 @@ import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -124,65 +125,31 @@ public class DtoClassGenerator {
     }
 
     private void generateFieldAnnotations(StringBuilder sb, Field field) {
-        if (field.isRequired()) {
-            if (field.getDataType().toLowerCase().contains("string")) {
-                sb.append("    @NotBlank(message = \"")
-                        .append(ValidationMessageSettingDialog.getNotBlankMessage(
-                                field.getCamelCaseName(), field.getComments()))
-                        .append("\")\n");
-            } else {
-                sb.append("    @NotNull(message = \"")
-                        .append(ValidationMessageSettingDialog.getNotNullMessage(
-                                field.getCamelCaseName(), field.getComments()))
-                        .append("\")\n");
+
+        // 添加驗證註解
+        String validationAnnotations = field.getValidationAnnotations();
+        if (!validationAnnotations.isEmpty()) {
+            sb.append("    ").append(validationAnnotations).append("\n");
+        }
+
+        // 添加 JsonProperty 註解
+        String jsonPropertyName = field.formatName(config.jsonPropertyStyle);
+        if (jsonPropertyName != null) {
+            sb.append("    @JsonProperty(\"").append(jsonPropertyName).append("\")\n");
+        }
+
+        // 添加 JsonAlias 註解
+        List<String> aliases = new ArrayList<>();
+        for (String style : config.jsonAliasStyles) {
+            String alias = field.formatName(style);
+            if (alias != null && !alias.equals(jsonPropertyName)) {
+                aliases.add(alias);
             }
         }
-
-        if ((field.isObject() && !field.isList()) ||
-                (field.isList() && !field.isPrimitiveOrWrapperType(field.getDataType()))) {
-            sb.append("    @Valid\n");
-        }
-
-        // JsonProperty 註解
-        String jsonPropertyName = field.formatName(config.jsonPropertyStyle);
-        sb.append("    @JsonProperty(\"").append(jsonPropertyName).append("\")\n");
-
-        // JsonAlias 註解（如果有選擇的格式）
-        List<String> aliasNames = config.jsonAliasStyles.stream()
-                .map(field::formatName)
-                .filter(name -> !name.equals(jsonPropertyName)) // 排除與 JsonProperty 相同的名稱
-                .distinct() // 去重
-                .collect(Collectors.toList());
-
-        if (!aliasNames.isEmpty()) {
-            sb.append("    @JsonAlias({")
-                    .append(aliasNames.stream()
-                            .map(name -> "\"" + name + "\"")
-                            .collect(Collectors.joining(", ")))
-                    .append("})\n");
-        }
-
-        String lowerType = field.getDataType().toLowerCase();
-        // 對於 decimal 和 bigdecimal 類型且有 size 的字段
-        if ((lowerType.equals("decimal") || lowerType.equals("bigdecimal"))
-                && !field.getSize().isEmpty()) {
-            String[] parts = field.getSize().split(",");
-            String integer = parts[0];
-            String fraction = parts.length > 1 ? parts[1] : "0";
-
-            sb.append("    @Digits(integer = ").append(integer)
-                    .append(", fraction = ").append(fraction)
-                    .append(", message = \"")
-                    .append(ValidationMessageSettingDialog.getDigitsMessage(
-                            field.getCamelCaseName(), field.getComments(), field.getSize()))
-                    .append("\")\n");
-        } else if (field.getDataType().toLowerCase().contains("string")
-                && !field.getSize().isEmpty()) {
-            sb.append("    @Size(max = ").append(field.getSize())
-                    .append(", message = \"")
-                    .append(ValidationMessageSettingDialog.getSizeMessage(
-                            field.getCamelCaseName(), field.getComments(), field.getSize()))
-                    .append("\")\n");
+        if (!aliases.isEmpty()) {
+            sb.append("    @JsonAlias({\"")
+                    .append(String.join("\", \"", aliases))
+                    .append("\"})\n");
         }
     }
 

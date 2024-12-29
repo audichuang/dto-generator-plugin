@@ -15,7 +15,7 @@ public class StructureAnalyzer {
     private final Map<Integer, Map<String, String>> levelClassNamesMap;
 
     public StructureAnalyzer(List<Field> allFields, String mainClassName,
-                             Map<Integer, Map<String, String>> levelClassNamesMap) {
+            Map<Integer, Map<String, String>> levelClassNamesMap) {
         this.allFields = allFields;
         this.mainClassName = mainClassName;
         this.levelClassNamesMap = levelClassNamesMap;
@@ -37,7 +37,7 @@ public class StructureAnalyzer {
     }
 
     private Map<Integer, Map<String, Structure>> initializeLevelStructures(int minLevel,
-                                                                           Structure mainStructure) {
+            Structure mainStructure) {
         Map<Integer, Map<String, Structure>> levelStructures = new HashMap<>();
         Map<String, Structure> currentLevelStructures = new HashMap<>();
         levelStructures.put(minLevel, currentLevelStructures);
@@ -63,7 +63,7 @@ public class StructureAnalyzer {
     }
 
     private void processLevelFields(Integer level, List<Field> fields,
-                                    Map<Integer, Map<String, Structure>> levelStructures, int minLevel) {
+            Map<Integer, Map<String, Structure>> levelStructures, int minLevel) {
         if (fields == null)
             return;
 
@@ -84,7 +84,7 @@ public class StructureAnalyzer {
     }
 
     private Structure findParentStructure(Field field, Integer level, int minLevel,
-                                          Map<Integer, Map<String, Structure>> levelStructures) {
+            Map<Integer, Map<String, Structure>> levelStructures) {
         if (level == minLevel) {
             return levelStructures.get(minLevel).get("main");
         }
@@ -114,7 +114,7 @@ public class StructureAnalyzer {
     }
 
     private void processComplexField(Field field, Integer level,
-                                     Structure parentStructure, Map<String, Structure> currentLevelStructures) {
+            Structure parentStructure, Map<String, Structure> currentLevelStructures) {
         String className = determineClassName(field, level);
         field.setChildClassName(className);
         updateFieldDataType(field);
@@ -180,7 +180,7 @@ public class StructureAnalyzer {
         simpleTypes.addAll(Arrays.asList(
                 "BigDecimal", "BigInteger", "Date", "LocalDate", "LocalDateTime"));
 
-        Field tempField = new Field(0, "", type, "", false, "", false);
+        Field tempField = new Field(0, "", type, "", false, "", "", false);
         String formattedType = tempField.getFormattedDataType();
 
         return simpleTypes.contains(formattedType);
@@ -188,7 +188,7 @@ public class StructureAnalyzer {
 
     private void updateSimpleListDataType(Field field) {
         String genericType = extractGenericType(field.getDataType());
-        Field tempField = new Field(0, "", genericType, "", false, "", false);
+        Field tempField = new Field(0, "", genericType, "", false, "", "", false);
         String formattedType = tempField.getFormattedDataType();
         field.setDataType("List<" + formattedType + ">");
     }

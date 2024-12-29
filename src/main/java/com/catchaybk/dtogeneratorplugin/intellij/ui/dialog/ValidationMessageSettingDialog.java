@@ -5,7 +5,9 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 
 /**
  * 驗證消息設置對話框
@@ -29,11 +31,13 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
     private static final String NOTNULL_KEY = "dto.generator.validation.notnull";
     private static final String SIZE_KEY = "dto.generator.validation.size";
     private static final String DIGITS_KEY = "dto.generator.validation.digits";
+    private static final String PATTERN_KEY = "dto.generator.validation.pattern";
 
     private final JBTextField notBlankField;
     private final JBTextField notNullField;
     private final JBTextField sizeField;
     private final JBTextField digitsField;
+    private final JBTextField patternField;
 
     public ValidationMessageSettingDialog() {
         super(true);
@@ -44,6 +48,7 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         sizeField = new JBTextField(props.getValue(SIZE_KEY, "${name} 長度不得超過${max}"));
         digitsField = new JBTextField(props.getValue(DIGITS_KEY,
                 "${name}格式不正確，整數位最多${integer}位，小數位最多${fraction}位"));
+        patternField = new JBTextField(props.getValue(PATTERN_KEY, "${name} 不符合格式"));
 
         init();
         setTitle("驗證消息設置");
@@ -82,6 +87,12 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
                 .replace("${fraction}", fraction);
     }
 
+    public static String getPatternMessage(String propertyName, String comment) {
+        String template = PropertiesComponent.getInstance().getValue(PATTERN_KEY, "${name} 不符合格式");
+        return template.replace("${name}", propertyName)
+                .replace("${comment}", comment != null && !comment.isEmpty() ? comment : propertyName);
+    }
+
     @Override
     protected JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -89,44 +100,16 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(5, 5, 5, 5);
 
-        // NotBlank消息
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(new JLabel("NotBlank消息:"), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(notBlankField, gbc);
-
-        // NotNull消息
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.0;
-        panel.add(new JLabel("NotNull消息:"), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(notNullField, gbc);
-
-        // Size消息
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.weightx = 0.0;
-        panel.add(new JLabel("Size消息:"), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(sizeField, gbc);
-
-        // Digits消息
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.weightx = 0.0;
-        panel.add(new JLabel("Digits消息:"), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(digitsField, gbc);
+        // 添加所有字段
+        addField(panel, gbc, "NotBlank消息:", notBlankField, 0);
+        addField(panel, gbc, "NotNull消息:", notNullField, 1);
+        addField(panel, gbc, "Size消息:", sizeField, 2);
+        addField(panel, gbc, "Digits消息:", digitsField, 3);
+        addField(panel, gbc, "Pattern消息:", patternField, 4);
 
         // 提示說明
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.gridwidth = 2;
         panel.add(new JLabel("<html>可用的變量：<br>" +
                 "${name} - 屬性名稱<br>" +
@@ -134,11 +117,25 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
                 "${max} - 最大長度（僅用於Size）<br>" +
                 "${integer} - 整數位數（僅用於Digits）<br>" +
                 "${fraction} - 小數位數（僅用於Digits）<br>" +
+                "${pattern} - 正則表達式（僅用於Pattern）<br>" +
                 "範例：<br>" +
                 "${name}(${comment}) 不得為空<br>" +
-                "${comment}格式不正確，整數位最多${integer}位，小數位最多${fraction}位</html>"), gbc);
+                "${comment}格式不正確，整數位最多${integer}位，小數位最多${fraction}位<br>" +
+                "${name} 不符合格式</html>"), gbc);
 
         return panel;
+    }
+
+    private void addField(JPanel panel, GridBagConstraints gbc, String label, JComponent field, int row) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        panel.add(new JLabel(label), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        panel.add(field, gbc);
     }
 
     @Override
@@ -147,6 +144,8 @@ public class ValidationMessageSettingDialog extends DialogWrapper {
         props.setValue(NOTBLANK_KEY, notBlankField.getText());
         props.setValue(NOTNULL_KEY, notNullField.getText());
         props.setValue(SIZE_KEY, sizeField.getText());
+        props.setValue(DIGITS_KEY, digitsField.getText());
+        props.setValue(PATTERN_KEY, patternField.getText());
         super.doOKAction();
     }
 }

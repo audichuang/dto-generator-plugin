@@ -38,7 +38,8 @@ public class FieldTableModel extends DefaultTableModel {
         DATA_TYPE("Data Type"),
         SIZE("Size"),
         REQUIRED("Required"),
-        COMMENTS("Comments");
+        COMMENTS("Comments"),
+        PATTERN("Pattern");
 
         private final String name;
 
@@ -61,7 +62,9 @@ public class FieldTableModel extends DefaultTableModel {
         }
     }
 
-    private static final String[] COLUMN_NAMES = {"Level", "Data Name", "Data Type", "Size", "Required", "Comments"};
+    private static final String[] COLUMN_NAMES = {
+            "Level", "Data Name", "Data Type", "Size", "Required", "Comments", "Pattern"
+    };
 
     private final Set<String> warnedTypes = new HashSet<>(); // 記錄已經警告過的類型
     private boolean isJava17;
@@ -73,7 +76,7 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     public void addEmptyRow() {
-        addRow(new Object[]{"", "", "", "", "", ""});
+        addRow(new Object[] { "", "", "", "", "", "", "" });
     }
 
     public void processClipboardData(String clipboardData) {
@@ -134,25 +137,24 @@ public class FieldTableModel extends DefaultTableModel {
             case 1:
             case 2:
             case 3:
-                // 3個或更少的值，直接按順序填充
+                // 3個或更少的值，直接按順序填充前面的欄位
                 fillByOrder(values, newRow);
                 break;
 
             case 4:
-                // 4個值的情況需要特殊處理
                 handleFourValues(values, newRow);
                 break;
-
             case 5:
-                // 5個值的情況需要特殊處理
                 handleFiveValues(values, newRow);
+                break;
+            case 6:
+                // 6個值的情況，Pattern欄位保持為空
+                handleNormalValues(values, newRow);
                 break;
 
             default:
-                // 6個或更多值，按順序填充前6個
-                for (int i = 0; i < Math.min(values.size(), getColumnCount()); i++) {
-                    newRow[i] = values.get(i);
-                }
+                // 7個或更多值，最後一個值作為Pattern
+                handleValuesWithPattern(values, newRow);
         }
     }
 
@@ -306,6 +308,7 @@ public class FieldTableModel extends DefaultTableModel {
                 fieldData.getOrDefault("Size", ""),
                 "Y".equalsIgnoreCase(fieldData.getOrDefault("Required", "N")),
                 fieldData.getOrDefault("Comments", ""),
+                fieldData.getOrDefault("Pattern", ""),
                 isJava17);
     }
 
@@ -466,6 +469,12 @@ public class FieldTableModel extends DefaultTableModel {
                     setToolTipText(null);
                     setBackground(table.getBackground());
                 }
+            } else if (columnName.equals("Pattern")) {
+                // Pattern 欄位不允許拖動，總是最後一列
+                if (column != table.getColumnCount() - 1) {
+                    setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+                    setToolTipText("Pattern 欄位必須是最後一列");
+                }
             } else {
                 setBorder(null);
                 setToolTipText(null);
@@ -489,5 +498,23 @@ public class FieldTableModel extends DefaultTableModel {
             int modelIndex = columnModel.getColumn(viewIndex).getModelIndex();
             currentColumnOrder.add(COLUMN_NAMES[modelIndex]);
         }
+    }
+
+    private void handleValuesWithPattern(List<String> values, String[] newRow) {
+        // 填充前6個欄位
+        for (int i = 0; i < 6; i++) {
+            newRow[i] = values.get(i);
+        }
+        // 最後一個值作為Pattern
+        newRow[6] = values.get(values.size() - 1);
+    }
+
+    private void handleNormalValues(List<String> values, String[] newRow) {
+        // 填充前6個欄位
+        for (int i = 0; i < Math.min(values.size(), 6); i++) {
+            newRow[i] = values.get(i);
+        }
+        // Pattern 欄位保持為空
+        newRow[6] = "";
     }
 }
