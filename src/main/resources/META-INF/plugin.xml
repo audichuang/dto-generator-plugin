@@ -150,13 +150,13 @@ public class MainDTO {
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="DTO Generator Notifications"
-                           displayType="BALLOON"/>
+                         displayType="BALLOON"/>
     </extensions>
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <actions>
         <action id="com.catchaybk.dtogeneratorplugin.GenerateDTOAction"
-                class="com.catchaybk.dtogeneratorplugin.GenerateDTOAction"
+                class="com.catchaybk.dtogeneratorplugin.intellij.action.GenerateDTOAction"
                 text="Generate DTO"
                 description="從結構化資料生成 DTO 類">
             <add-to-group group-id="GenerateGroup" anchor="first"/>

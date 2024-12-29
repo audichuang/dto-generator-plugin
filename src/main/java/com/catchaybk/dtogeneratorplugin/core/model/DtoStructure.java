@@ -1,8 +1,7 @@
-package com.catchaybk.dtogeneratorplugin.model;
+package com.catchaybk.dtogeneratorplugin.core.model;
 
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
 

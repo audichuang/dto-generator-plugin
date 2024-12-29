@@ -1,4 +1,4 @@
-package com.catchaybk.dtogeneratorplugin.ui;
+package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.ui.DialogWrapper;

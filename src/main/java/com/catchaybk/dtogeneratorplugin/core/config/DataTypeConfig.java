@@ -1,4 +1,4 @@
-package com.catchaybk.dtogeneratorplugin.config;
+package com.catchaybk.dtogeneratorplugin.core.config;
 
 import java.util.HashSet;
 import java.util.Set;

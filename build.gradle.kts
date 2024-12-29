@@ -19,10 +19,21 @@ intellij {
 
 dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
-    compileOnly("org.projectlombok:lombok:1.18.30") // 添加Lombok依賴
-    annotationProcessor("org.projectlombok:lombok:1.18.30") // 添加Lombok註解處理器
+    compileOnly("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs("src/main/java")
+            // 添加核心代碼目錄
+            include("com/catchaybk/dtogeneratorplugin/core/**")
+            // 添加 IDE 特定實現目錄
+            include("com/catchaybk/dtogeneratorplugin/intellij/**")
+        }
+    }
+}
 
 tasks {
     withType<JavaCompile> {
@@ -33,15 +44,5 @@ tasks {
     patchPluginXml {
         sinceBuild.set("241")
         untilBuild.set("243.*")
-    }
-
-    signPlugin {
-        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
-        privateKey.set(System.getenv("PRIVATE_KEY"))
-        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
-    }
-
-    publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
     }
 }

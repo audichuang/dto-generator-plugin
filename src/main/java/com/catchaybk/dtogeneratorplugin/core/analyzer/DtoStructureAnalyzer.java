@@ -1,8 +1,6 @@
-package com.catchaybk.dtogeneratorplugin;
+package com.catchaybk.dtogeneratorplugin.core.analyzer;
 
-import com.catchaybk.dtogeneratorplugin.model.DtoField;
-import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
-
+import com.catchaybk.dtogeneratorplugin.core.model.*;
 import java.util.*;
 
 /**
@@ -15,7 +13,7 @@ public class DtoStructureAnalyzer {
     private final Map<Integer, Map<String, String>> levelClassNamesMap;
 
     public DtoStructureAnalyzer(List<DtoField> allFields, String mainClassName,
-                                Map<Integer, Map<String, String>> levelClassNamesMap) {
+            Map<Integer, Map<String, String>> levelClassNamesMap) {
         this.allFields = allFields;
         this.mainClassName = mainClassName;
         this.levelClassNamesMap = levelClassNamesMap;
@@ -37,7 +35,7 @@ public class DtoStructureAnalyzer {
     }
 
     private Map<Integer, Map<String, DtoStructure>> initializeLevelStructures(int minLevel,
-                                                                              DtoStructure mainStructure) {
+            DtoStructure mainStructure) {
         Map<Integer, Map<String, DtoStructure>> levelStructures = new HashMap<>();
         Map<String, DtoStructure> currentLevelStructures = new HashMap<>();
         levelStructures.put(minLevel, currentLevelStructures);
@@ -63,7 +61,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void processLevelFields(Integer level, List<DtoField> fields,
-                                    Map<Integer, Map<String, DtoStructure>> levelStructures, int minLevel) {
+            Map<Integer, Map<String, DtoStructure>> levelStructures, int minLevel) {
         if (fields == null)
             return;
 
@@ -84,7 +82,7 @@ public class DtoStructureAnalyzer {
     }
 
     private DtoStructure findParentStructure(DtoField field, Integer level, int minLevel,
-                                             Map<Integer, Map<String, DtoStructure>> levelStructures) {
+            Map<Integer, Map<String, DtoStructure>> levelStructures) {
         if (level == minLevel) {
             return levelStructures.get(minLevel).get("main");
         }
@@ -114,7 +112,7 @@ public class DtoStructureAnalyzer {
     }
 
     private void processComplexField(DtoField field, Integer level,
-                                     DtoStructure parentStructure, Map<String, DtoStructure> currentLevelStructures) {
+            DtoStructure parentStructure, Map<String, DtoStructure> currentLevelStructures) {
         String className = determineClassName(field, level);
         field.setChildClassName(className);
         updateFieldDataType(field);

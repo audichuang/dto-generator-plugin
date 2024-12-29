@@ -1,7 +1,8 @@
-package com.catchaybk.dtogeneratorplugin;
+package com.catchaybk.dtogeneratorplugin.core.generator;
 
-import com.catchaybk.dtogeneratorplugin.model.DtoField;
-import com.catchaybk.dtogeneratorplugin.ui.ValidationMessageSettingDialog;
+import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 
 import java.util.HashSet;
 import java.util.List;

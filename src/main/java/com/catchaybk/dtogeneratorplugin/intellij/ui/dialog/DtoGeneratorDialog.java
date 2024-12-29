@@ -1,8 +1,8 @@
-package com.catchaybk.dtogeneratorplugin.ui;
+package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
-import com.catchaybk.dtogeneratorplugin.UserConfig;
-import com.catchaybk.dtogeneratorplugin.model.DtoField;
-import com.catchaybk.dtogeneratorplugin.ui.model.DtoTableModel;
+import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
+import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.model.DtoTableModel;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
@@ -153,7 +153,7 @@ public class DtoGeneratorDialog extends DialogWrapper {
                             "請確認是否要繼續？",
                     unknownTypesStr);
 
-            String[] options = {"繼續", "取消"};
+            String[] options = { "繼續", "取消" };
             int result = Messages.showDialog(
                     message,
                     "警告",

@@ -1,4 +1,4 @@
-package com.catchaybk.dtogeneratorplugin.ui.factory;
+package com.catchaybk.dtogeneratorplugin.intellij.ui.factory;
 
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;

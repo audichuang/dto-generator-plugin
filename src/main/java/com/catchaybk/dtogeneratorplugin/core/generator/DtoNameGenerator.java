@@ -1,4 +1,4 @@
-package com.catchaybk.dtogeneratorplugin.generator;
+package com.catchaybk.dtogeneratorplugin.core.generator;
 
 /**
  * DTO名稱生成器
@@ -15,7 +15,7 @@ public class DtoNameGenerator {
      * @return 生成的類名
      */
     public static String generateClassName(String msgId, String direction,
-                                           String baseName, boolean isMainClass) {
+            String baseName, boolean isMainClass) {
         if (msgId == null || msgId.isEmpty() || "無".equals(direction)) {
             return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName)
                     : capitalizeFirstLetter(baseName);

@@ -1,7 +1,9 @@
-package com.catchaybk.dtogeneratorplugin;
+package com.catchaybk.dtogeneratorplugin.intellij.action;
 
-import com.catchaybk.dtogeneratorplugin.model.DtoStructure;
-import com.catchaybk.dtogeneratorplugin.ui.DtoGeneratorDialog;
+import com.catchaybk.dtogeneratorplugin.core.model.*;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.DtoGeneratorDialog;
+import com.catchaybk.dtogeneratorplugin.core.analyzer.DtoStructureAnalyzer;
+import com.catchaybk.dtogeneratorplugin.core.generator.*;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;

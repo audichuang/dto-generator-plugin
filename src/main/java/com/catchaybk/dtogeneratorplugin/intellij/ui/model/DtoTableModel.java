@@ -1,7 +1,8 @@
-package com.catchaybk.dtogeneratorplugin.ui.model;
+package com.catchaybk.dtogeneratorplugin.intellij.ui.model;
 
-import com.catchaybk.dtogeneratorplugin.config.DataTypeConfig;
-import com.catchaybk.dtogeneratorplugin.model.DtoField;
+
+import com.catchaybk.dtogeneratorplugin.core.config.DataTypeConfig;
+import com.catchaybk.dtogeneratorplugin.core.model.DtoField;
 import com.intellij.openapi.ui.Messages;
 
 import javax.swing.*;

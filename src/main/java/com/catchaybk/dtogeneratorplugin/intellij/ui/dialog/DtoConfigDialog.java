@@ -1,9 +1,9 @@
-package com.catchaybk.dtogeneratorplugin.ui;
+package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
-import com.catchaybk.dtogeneratorplugin.generator.DtoNameGenerator;
-import com.catchaybk.dtogeneratorplugin.model.DtoConfigData;
-import com.catchaybk.dtogeneratorplugin.ui.factory.DtoConfigPanelFactory;
-import com.catchaybk.dtogeneratorplugin.validator.DtoConfigValidator;
+import com.catchaybk.dtogeneratorplugin.core.generator.DtoNameGenerator;
+import com.catchaybk.dtogeneratorplugin.core.model.DtoConfigData;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.DtoConfigPanelFactory;
+import com.catchaybk.dtogeneratorplugin.intellij.validator.DtoConfigValidator;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
@@ -36,8 +36,8 @@ public class DtoConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
-    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
+    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
+    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 600;
@@ -69,7 +69,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 創建配置對話框
-     * 
+     *
      * @param msgId          MSGID
      * @param author         作者
      * @param mainClassName  主類名
@@ -80,8 +80,8 @@ public class DtoConfigDialog extends DialogWrapper {
      * @param initialPackage 初始包路徑
      */
     public DtoConfigDialog(String msgId, String author, String mainClassName,
-            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-            Project project, String initialPackage) {
+                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+                           Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -94,7 +94,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 創建對話框的中心面板
-     * 
+     *
      * @return 配置好的面板組件
      */
     @Nullable
@@ -178,7 +178,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 從MSGID中提取電文ID
-     * 
+     *
      * @param msgId 原始的MSGID
      * @return 提取的電文ID
      */
@@ -232,7 +232,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 獲取選中的 JSON Alias 格式列表
-     * 
+     *
      * @return JSON Alias 格式列表
      */
     public List<String> getJsonAliasStyles() {
@@ -450,7 +450,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                boolean isJava17, boolean isUpstream, String initialPackage) {
+                   boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;

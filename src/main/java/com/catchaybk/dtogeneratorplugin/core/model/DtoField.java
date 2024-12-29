@@ -1,8 +1,7 @@
-package com.catchaybk.dtogeneratorplugin.model;
+package com.catchaybk.dtogeneratorplugin.core.model;
 
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.*;
 
 @Getter
@@ -31,7 +30,7 @@ public class DtoField {
     private String requiredString;
 
     public DtoField(int level, String dataName, String dataType, String size, boolean required, String comments,
-                    boolean isJava17) {
+            boolean isJava17) {
         this.level = level;
         this.dataName = dataName;
         this.dataType = dataType;
