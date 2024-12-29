@@ -1,12 +1,13 @@
 package com.catchaybk.dtogeneratorplugin.intellij.action;
 
 import com.catchaybk.dtogeneratorplugin.core.analyzer.StructureAnalyzer;
-import com.catchaybk.dtogeneratorplugin.core.generator.DtoClassGenerator;
+import com.catchaybk.dtogeneratorplugin.core.generator.ClassGenerator;
 import com.catchaybk.dtogeneratorplugin.core.model.Structure;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.GeneratorDialog;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -19,7 +20,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -124,10 +124,10 @@ public class GenerateAction extends AnAction {
     }
 
     private void generateAllClasses(Project project, PsiDirectory directory,
-            Structure structure, UserConfig config,
-            List<String> emptyClasses, ClassCounter counter) {
+                                    Structure structure, UserConfig config,
+                                    List<String> emptyClasses, ClassCounter counter) {
         // 生成當前類
-        String classContent = new DtoClassGenerator(targetPackage, config)
+        String classContent = new ClassGenerator(targetPackage, config)
                 .generateClass(structure.getClassName(), structure.getFields());
         createJavaClass(project, directory, structure.getClassName(), classContent);
 
@@ -144,7 +144,7 @@ public class GenerateAction extends AnAction {
     }
 
     private void showCompletionNotification(Project project, int totalClasses, int successClasses,
-            List<String> emptyClasses) {
+                                            List<String> emptyClasses) {
         StringBuilder message = new StringBuilder()
                 .append(String.format("已成功生成 %d 個Class", successClasses));
 
@@ -163,7 +163,7 @@ public class GenerateAction extends AnAction {
     }
 
     private void createJavaClass(Project project, PsiDirectory directory,
-            String className, String classContent) {
+                                 String className, String classContent) {
         PsiFileFactory factory = PsiFileFactory.getInstance(project);
         String fileName = className + ".java";
 

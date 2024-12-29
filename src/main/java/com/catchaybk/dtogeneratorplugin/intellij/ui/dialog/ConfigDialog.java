@@ -1,6 +1,6 @@
 package com.catchaybk.dtogeneratorplugin.intellij.ui.dialog;
 
-import com.catchaybk.dtogeneratorplugin.core.generator.DtoNameGenerator;
+import com.catchaybk.dtogeneratorplugin.core.generator.NameGenerator;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.factory.ConfigPanelFactory;
 import com.intellij.ide.util.PackageChooserDialog;
 import com.intellij.ide.util.PropertiesComponent;
@@ -34,8 +34,8 @@ public class ConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
-    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
+    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
+    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 800;
@@ -78,8 +78,8 @@ public class ConfigDialog extends DialogWrapper {
      * @param initialPackage 初始包路徑
      */
     public ConfigDialog(String msgId, String author, String mainClassName,
-            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-            Project project, String initialPackage) {
+                        boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+                        Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -375,14 +375,14 @@ public class ConfigDialog extends DialogWrapper {
         String effectiveId = getEffectiveId();
 
         // 更新主類名
-        String mainClassName = DtoNameGenerator.generateClassName(
+        String mainClassName = NameGenerator.generateClassName(
                 effectiveId, direction, "", true);
         ui.mainClassField.setText(mainClassName);
 
         // 更新所有子類名
         for (Map.Entry<String, JBTextField> entry : classNameFields.entrySet()) {
             String baseName = entry.getKey();
-            String newClassName = DtoNameGenerator.generateClassName(
+            String newClassName = NameGenerator.generateClassName(
                     effectiveId, direction, baseName, false);
             entry.getValue().setText(newClassName);
         }
@@ -455,7 +455,7 @@ public class ConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                boolean isJava17, boolean isUpstream, String initialPackage) {
+                   boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;

@@ -3,7 +3,7 @@ package com.catchaybk.dtogeneratorplugin.core.generator;
 /**
  * DTO名稱生成器
  * 負責根據不同條件生成DTO類的名稱
- * 
+ * <p>
  * 命名規則：
  * 1. 無電文ID時：
  * - 主類：使用指定名稱或默認為 "MainDTO"
@@ -12,7 +12,7 @@ package com.catchaybk.dtogeneratorplugin.core.generator;
  * - 主類：[電文ID] + [方向後綴(Tranrq/Tranrs)]
  * - 子類：[電文ID] + [方向後綴] + [首字母大寫的字段名]
  */
-public class DtoNameGenerator {
+public class NameGenerator {
     /**
      * 生成DTO類名
      *
@@ -23,7 +23,7 @@ public class DtoNameGenerator {
      * @return 生成的類名
      */
     public static String generateClassName(String msgId, String direction,
-            String baseName, boolean isMainClass) {
+                                           String baseName, boolean isMainClass) {
         if (msgId == null || msgId.isEmpty() || "無".equals(direction)) {
             return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName)
                     : capitalizeFirstLetter(baseName);

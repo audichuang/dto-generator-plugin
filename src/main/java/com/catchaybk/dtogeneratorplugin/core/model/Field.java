@@ -8,34 +8,51 @@ import java.util.*;
 import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 
 /**
- * 字段模型類
+ * DTO字段模型類
  * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
- * <p>
+ * 
  * 主要功能：
  * 1. 管理字段的基本信息（名稱、類型、大小等）
  * 2. 處理字段類型的格式化和驗證
  * 3. 提供字段相關的工具方法
- * 4. 管理字段的導入聲明
+ * 4. 管理字段的導入聲明和驗證註解
  */
 @Getter
 @Setter
 public class Field {
-    /**
-     * 類型導入映射表，用於管理需要特殊導入的類型
-     */
-    private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>();
+    /** 類型導入映射表，用於管理需要特殊導入的類型 */
+    private static final Map<String, String> TYPE_IMPORT_MAP = new HashMap<>() {
+        {
+            put("Timestamp", "java.sql.Timestamp");
+            put("BigDecimal", "java.math.BigDecimal");
+            put("LocalDate", "java.time.LocalDate");
+            put("LocalDateTime", "java.time.LocalDateTime");
+            put("Date", "java.util.Date");
+            put("List", "java.util.List");
+        }
+    };
 
-    static {
-        // 初始化需要特殊導入的類型
-        TYPE_IMPORT_MAP.put("Timestamp", "java.sql.Timestamp");
-        TYPE_IMPORT_MAP.put("BigDecimal", "java.math.BigDecimal");
-        TYPE_IMPORT_MAP.put("LocalDate", "java.time.LocalDate");
-        TYPE_IMPORT_MAP.put("LocalDateTime", "java.time.LocalDateTime");
-        TYPE_IMPORT_MAP.put("Date", "java.util.Date");
-        TYPE_IMPORT_MAP.put("List", "java.util.List");
-    }
+    /** 基本類型和包裝類型集合 */
+    private static final Set<String> PRIMITIVE_AND_WRAPPER_TYPES = new HashSet<>(Arrays.asList(
+            "string", "String",
+            "int", "integer", "Integer",
+            "long", "Long",
+            "double", "Double",
+            "float", "Float",
+            "boolean", "Boolean",
+            "date", "Date",
+            "datetime", "DateTime",
+            "timestamp", "Timestamp",
+            "bigdecimal", "BigDecimal",
+            "decimal", "BigDecimal",
+            "char", "Character",
+            "byte", "Byte",
+            "short", "Short",
+            "void", "Void",
+            "LocalDate",
+            "LocalDateTime"));
 
-    // 字段屬性
+    // 字段基本屬性
     private final boolean isJava17; // 是否使用 Java 17
     private int level; // 字段層級
     private String dataName; // 字段名稱
@@ -43,13 +60,13 @@ public class Field {
     private String size; // 大小限制
     private boolean required; // 是否必填
     private String comments; // 註解說明
+    private String pattern; // 正則表達式模式
     private String childClassName; // 子類名稱（用於複雜類型）
     private boolean isObject; // 是否為對象類型
     private String requiredString; // 必填標記字符串
-    private String pattern;
 
     /**
-     * 創建DTO字段實例
+     * 創建字段實例
      *
      * @param level    字段層級
      * @param dataName 字段名稱
@@ -57,7 +74,7 @@ public class Field {
      * @param size     大小限制
      * @param required 是否必填
      * @param comments 註解說明
-     * @param pattern  驗證模式
+     * @param pattern  正則表達式模式
      * @param isJava17 是否使用Java 17
      */
     public Field(int level, String dataName, String dataType, String size,
@@ -330,7 +347,12 @@ public class Field {
     }
 
     /**
-     * 獲取驗證註解
+     * 獲取字段的驗證註解
+     * 包括：
+     * 1. Pattern 註解（如果有正則表達式）
+     * 2. NotNull/NotBlank 註解（如果是必填字段）
+     * 3. Size 註解（如果是字符串且有長度限制）
+     * 4. Digits 註解（如果是數字類型且有大小限制）
      *
      * @return 驗證註解字符串
      */
@@ -344,13 +366,25 @@ public class Field {
                     ValidationMessageSettingDialog.getPatternMessage(getCamelCaseName(), comments)));
         }
 
-        // 添加其他驗證註解
+        // 添加 NotNull/NotBlank 註解
         if (required) {
-            annotations.add(String.format("@NotNull(message = \"%s\")",
-                    ValidationMessageSettingDialog.getNotNullMessage(getCamelCaseName(), comments)));
+            if (dataType != null && dataType.toLowerCase().contains("string")) {
+                annotations.add(String.format("@NotBlank(message = \"%s\")",
+                        ValidationMessageSettingDialog.getNotBlankMessage(getCamelCaseName(), comments)));
+            } else {
+                annotations.add(String.format("@NotNull(message = \"%s\")",
+                        ValidationMessageSettingDialog.getNotNullMessage(getCamelCaseName(), comments)));
+            }
         }
 
-        // 添加 Digits 註解
+        // 添加 Size 註解（用於字符串類型）
+        if (dataType != null && dataType.toLowerCase().contains("string") && !size.isEmpty()) {
+            annotations.add(String.format("@Size(max = %s, message = \"%s\")",
+                    size,
+                    ValidationMessageSettingDialog.getSizeMessage(getCamelCaseName(), comments, size)));
+        }
+
+        // 添加 Digits 註解（用於數字類型）
         if (dataType != null && (dataType.equalsIgnoreCase("decimal") ||
                 dataType.equalsIgnoreCase("bigdecimal")) && !size.isEmpty()) {
             String[] parts = size.split(",");

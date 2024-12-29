@@ -2,23 +2,21 @@ package com.catchaybk.dtogeneratorplugin.core.generator;
 
 import com.catchaybk.dtogeneratorplugin.core.model.Field;
 import com.catchaybk.dtogeneratorplugin.core.model.UserConfig;
-import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * DTO類生成器
+ * 類生成器
  * 負責生成DTO類的代碼內容
  */
-public class DtoClassGenerator {
+public class ClassGenerator {
     private final String packageName;
     private final UserConfig config;
 
-    public DtoClassGenerator(String packageName, UserConfig config) {
+    public ClassGenerator(String packageName, UserConfig config) {
         this.packageName = packageName;
         this.config = config;
     }
