@@ -36,8 +36,8 @@ public class DtoConfigDialog extends DialogWrapper {
     // 常量定義
     private static final String TITLE = "DTO Generator Configuration";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
-    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
+    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
+    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 150;
     private static final int FIELD_HEIGHT = 30;
     private static final int SCROLL_WIDTH = 600;
@@ -67,9 +67,21 @@ public class DtoConfigDialog extends DialogWrapper {
     private final Map<String, JBTextField> classNameFields = new HashMap<>();
     private final Map<Integer, List<String>> levelTypesMap;
 
+    /**
+     * 創建配置對話框
+     * 
+     * @param msgId          MSGID
+     * @param author         作者
+     * @param mainClassName  主類名
+     * @param isJava17       是否使用 Java 17
+     * @param isUpstream     是否為上行電文
+     * @param levelTypesMap  層級類型映射
+     * @param project        當前項目
+     * @param initialPackage 初始包路徑
+     */
     public DtoConfigDialog(String msgId, String author, String mainClassName,
-                           boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-                           Project project, String initialPackage) {
+            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+            Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
@@ -80,6 +92,11 @@ public class DtoConfigDialog extends DialogWrapper {
         setTitle(TITLE);
     }
 
+    /**
+     * 創建對話框的中心面板
+     * 
+     * @return 配置好的面板組件
+     */
     @Nullable
     @Override
     protected JComponent createCenterPanel() {
@@ -136,7 +153,51 @@ public class DtoConfigDialog extends DialogWrapper {
         return mainPanel;
     }
 
-    // Getter方法
+    /**
+     * 更新電文ID面板的可見性
+     * 根據電文方向決定是否顯示電文ID輸入框，並自動填充ID
+     */
+    private void updateTranIdVisibility() {
+        String direction = (String) ui.directionComboBox.getSelectedItem();
+        boolean showTranId = !"無".equals(direction);
+        ui.tranIdPanel.setVisible(showTranId);
+
+        if (!showTranId) {
+            ui.tranIdField.setText("");
+            updateAllClassNames();
+        } else if (ui.tranIdField.getText().isEmpty() && ui.msgIdField.getText() != null) {
+            String msgId = ui.msgIdField.getText().trim();
+            String tranId = extractTranId(msgId);
+            ui.tranIdField.setText(tranId);
+            updateAllClassNames();
+        }
+
+        ui.tranIdPanel.revalidate();
+        ui.tranIdPanel.repaint();
+    }
+
+    /**
+     * 從MSGID中提取電文ID
+     * 
+     * @param msgId 原始的MSGID
+     * @return 提取的電文ID
+     */
+    private String extractTranId(String msgId) {
+        if (msgId == null || msgId.isEmpty()) {
+            return "";
+        }
+
+        if (msgId.contains("-")) {
+            int startIndex = msgId.lastIndexOf("-") + 1;
+            int endIndex = msgId.indexOf(" ", startIndex);
+            return endIndex == -1 ? msgId.substring(startIndex) : msgId.substring(startIndex, endIndex);
+        }
+
+        int spaceIndex = msgId.indexOf(" ");
+        return spaceIndex != -1 ? msgId.substring(0, spaceIndex) : msgId;
+    }
+
+    // Getter 方法
     public String getTargetPackage() {
         return ui.packageChooser.getText().trim();
     }
@@ -157,9 +218,59 @@ public class DtoConfigDialog extends DialogWrapper {
         return "Java 17".equals(ui.javaVersionBox.getSelectedItem());
     }
 
-    public String getClassName(String typeName) {
-        JBTextField field = classNameFields.get(typeName);
-        return field != null ? field.getText().trim() : "";
+    public String getMessageDirection() {
+        return (String) ui.directionComboBox.getSelectedItem();
+    }
+
+    public boolean isRememberAuthor() {
+        return ui.rememberAuthorBox.isSelected();
+    }
+
+    public String getJsonPropertyStyle() {
+        return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
+    }
+
+    /**
+     * 獲取選中的 JSON Alias 格式列表
+     * 
+     * @return JSON Alias 格式列表
+     */
+    public List<String> getJsonAliasStyles() {
+        return ui.jsonAliasStyleList.getSelectedValuesList().stream()
+                .map(style -> style.split(" ")[0])
+                .filter(style -> !style.equals("無"))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 獲取電文方向的註釋
+     */
+    public String getMessageDirectionComment() {
+        return switch (getMessageDirection()) {
+            case "上行" -> "上行/請求電文";
+            case "下行" -> "下行/回應電文";
+            default -> "";
+        };
+    }
+
+    /**
+     * 獲取層級類名映射
+     */
+    public Map<Integer, Map<String, String>> getLevelClassNamesMap() {
+        Map<Integer, Map<String, String>> result = new HashMap<>();
+        for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
+            Map<String, String> classNames = new HashMap<>();
+            for (String typeName : entry.getValue()) {
+                String className = getClassName(typeName);
+                if (!className.isEmpty()) {
+                    classNames.put(typeName, className);
+                }
+            }
+            if (!classNames.isEmpty()) {
+                result.put(entry.getKey(), classNames);
+            }
+        }
+        return result;
     }
 
     /**
@@ -173,21 +284,6 @@ public class DtoConfigDialog extends DialogWrapper {
         gbc.insets = JBUI.insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
         return gbc;
-    }
-
-    /**
-     * 添加底部填充空間
-     *
-     * @param panel 要添加空間的面板
-     * @param gbc   GridBag約束
-     */
-    private void addBottomSpacer(JPanel panel, GridBagConstraints gbc) {
-        JPanel spacer = new JPanel();
-        gbc.gridx = 0;
-        gbc.gridy = levelTypesMap.size() + 1;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        panel.add(spacer, gbc);
     }
 
     /**
@@ -215,25 +311,6 @@ public class DtoConfigDialog extends DialogWrapper {
             field.setPreferredSize(new Dimension(400, FIELD_HEIGHT));
         }
         panel.add(field, gbc);
-    }
-
-    /**
-     * 添加分隔線
-     *
-     * @param panel 目標面板
-     * @param gbc   GridBag約束
-     * @param row   行號
-     */
-    private void addSeparator(JPanel panel, GridBagConstraints gbc, int row) {
-        JSeparator separator = new JSeparator();
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = JBUI.insets(10, 0, 10, 0);
-        panel.add(separator, gbc);
-        gbc.gridwidth = 1;
-        gbc.insets = JBUI.insets(5, 5, 5, 5);
     }
 
     /**
@@ -268,50 +345,6 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     /**
-     * 添加電文ID面板
-     *
-     * @param panel 目標面板
-     * @param gbc   GridBag約束
-     * @param row   行號
-     */
-    private void addTranIdPanel(JPanel panel, GridBagConstraints gbc, int row) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.gridwidth = 2;
-        panel.add(ui.tranIdPanel, gbc);
-        gbc.gridwidth = 1;
-        addFormRow(ui.tranIdPanel, "電文ID:", ui.tranIdField, createDefaultConstraints(), 0);
-        ui.tranIdPanel.setVisible(false);
-    }
-
-    /**
-     * 添加作者配置區域
-     *
-     * @param panel 目標面板
-     * @param gbc   GridBag約束
-     * @param row   行號
-     */
-    private void addAuthorConfig(JPanel panel, GridBagConstraints gbc, int row) {
-        addFormRow(panel, "作者:", ui.authorField, gbc, row);
-        gbc.gridx = 1;
-        gbc.gridy = row + 1;
-        panel.add(ui.rememberAuthorBox, gbc);
-    }
-
-    /**
-     * 添加版本和主類配置區域
-     *
-     * @param panel 目標面板
-     * @param gbc   GridBag約束
-     * @param row   行號
-     */
-    private void addVersionAndMainClass(JPanel panel, GridBagConstraints gbc, int row) {
-        addFormRow(panel, "Java版本:", ui.javaVersionBox, gbc, row);
-        addFormRow(panel, "主類名:", ui.mainClassField, gbc, row + 1);
-        addSeparator(panel, gbc, row + 2);
-    }
-
-    /**
      * 創建文檔變更監聽器
      *
      * @return 文檔監聽器實例
@@ -337,7 +370,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * 更新所有類名
-     * 當MSGID或電文方向改變時自動更新所有相關���名
+     * 當MSGID或電文方向改變時自動更新所有相關類名
      */
     private void updateAllClassNames() {
         String direction = (String) ui.directionComboBox.getSelectedItem();
@@ -358,96 +391,6 @@ public class DtoConfigDialog extends DialogWrapper {
     }
 
     /**
-     * 生成類名
-     *
-     * @param msgId       消息ID
-     * @param direction   電文方向
-     * @param baseName    基礎名稱
-     * @param isMainClass 是否為主類
-     * @return 生成的類名
-     */
-    private String generateClassName(String msgId, String direction, String baseName, boolean isMainClass) {
-        if (msgId == null || msgId.isEmpty() || "無".equals(direction)) {
-            return isMainClass ? (baseName.isEmpty() ? "MainDTO" : baseName) : capitalizeFirstLetter(baseName);
-        }
-
-        String suffix = "上行".equals(direction) ? "Tranrq" : "Tranrs";
-        String prefix = msgId.toUpperCase();
-        return isMainClass ? prefix + suffix : prefix + suffix + capitalizeFirstLetter(baseName);
-    }
-
-    /**
-     * 首字母大寫
-     *
-     * @param input 輸入字符串
-     * @return 首字母大寫後的字符串
-     */
-    private String capitalizeFirstLetter(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
-        return input.substring(0, 1).toUpperCase() + input.substring(1);
-    }
-
-    /**
-     * 更新電文ID面板的可見性
-     * 根據電文方向決定是否顯示電文ID輸入框
-     */
-    private void updateTranIdVisibility() {
-        String direction = (String) ui.directionComboBox.getSelectedItem();
-        boolean showTranId = !"無".equals(direction);
-        ui.tranIdPanel.setVisible(showTranId);
-
-        if (!showTranId) {
-            ui.tranIdField.setText("");
-            updateAllClassNames(); // 當隱藏時也更新類名
-        } else if (ui.tranIdField.getText().isEmpty() && ui.msgIdField.getText() != null) {
-            String msgId = ui.msgIdField.getText().trim();
-            String tranId = extractTranId(msgId);
-            ui.tranIdField.setText(tranId);
-            updateAllClassNames(); // 當設置 tranId 時更新類名
-        }
-
-        ui.tranIdPanel.revalidate();
-        ui.tranIdPanel.repaint();
-    }
-
-    /**
-     * 從MSGID中提取電文ID
-     * 例如：
-     * "B2E-ADHNQ001 哈哈哈" -> "ADHNQ001"
-     * "ADHNQ001 測試" -> "ADHNQ001"
-     * "XXX-YYY 說明" -> "YYY"
-     *
-     * @param msgId 原始的MSGID
-     * @return 提取的電文ID
-     */
-    private String extractTranId(String msgId) {
-        if (msgId == null || msgId.isEmpty()) {
-            return "";
-        }
-
-        // 如果包含連字符，取連字符後到空格前的部分
-        if (msgId.contains("-")) {
-            int startIndex = msgId.lastIndexOf("-") + 1;
-            int endIndex = msgId.indexOf(" ", startIndex);
-            if (endIndex == -1) {
-                endIndex = msgId.length();
-            }
-            return msgId.substring(startIndex, endIndex);
-        }
-
-        // 如果不包含連字符，取開頭到第個空格的���分
-        int spaceIndex = msgId.indexOf(" ");
-        if (spaceIndex != -1) {
-            return msgId.substring(0, spaceIndex);
-        }
-
-        // 如果沒有空格，返回整個字符串
-        return msgId;
-    }
-
-    /**
      * 取有效的ID
      *
      * @return 根據當前電文方向返回應的ID
@@ -455,19 +398,6 @@ public class DtoConfigDialog extends DialogWrapper {
     private String getEffectiveId() {
         String direction = (String) ui.directionComboBox.getSelectedItem();
         return "無".equals(direction) ? ui.msgIdField.getText().trim() : ui.tranIdField.getText().trim();
-    }
-
-    public String getMessageDirection() {
-        return (String) ui.directionComboBox.getSelectedItem();
-    }
-
-    public String getMessageDirectionComment() {
-        String direction = getMessageDirection();
-        return switch (direction) {
-            case "上行" -> "上行/請求電文";
-            case "下行" -> "下行/回應電文";
-            default -> "";
-        };
     }
 
     @Override
@@ -507,38 +437,6 @@ public class DtoConfigDialog extends DialogWrapper {
         return names;
     }
 
-    public Map<Integer, Map<String, String>> getLevelClassNamesMap() {
-        Map<Integer, Map<String, String>> result = new HashMap<>();
-        for (Map.Entry<Integer, List<String>> entry : levelTypesMap.entrySet()) {
-            Map<String, String> classNames = new HashMap<>();
-            for (String typeName : entry.getValue()) {
-                String className = getClassName(typeName);
-                if (!className.isEmpty()) {
-                    classNames.put(typeName, className);
-                }
-            }
-            if (!classNames.isEmpty()) {
-                result.put(entry.getKey(), classNames);
-            }
-        }
-        return result;
-    }
-
-    public boolean isRememberAuthor() {
-        return ui.rememberAuthorBox.isSelected();
-    }
-
-    public String getJsonPropertyStyle() {
-        return (String) ui.jsonPropertyStyleCombo.getSelectedItem();
-    }
-
-    public List<String> getJsonAliasStyles() {
-        return ui.jsonAliasStyleList.getSelectedValuesList().stream()
-                .map(style -> style.split(" ")[0])
-                .filter(style -> !style.equals("��"))
-                .collect(Collectors.toList());
-    }
-
     /**
      * 配置數據類
      * 存儲所有配置相關的初始值
@@ -552,7 +450,7 @@ public class DtoConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                   boolean isJava17, boolean isUpstream, String initialPackage) {
+                boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;
@@ -564,7 +462,7 @@ public class DtoConfigDialog extends DialogWrapper {
 
     /**
      * UI組件類
-     * 集中管理所有UI組件��提高代碼的組織性和可維護性
+     * 集中管理所有UI組件，提高代碼的組織性和可維護性
      */
     private class UIComponents {
         final TextFieldWithBrowseButton packageChooser;
@@ -657,5 +555,10 @@ public class DtoConfigDialog extends DialogWrapper {
             jsonAliasStyleList.setModel(model);
             jsonAliasStyleList.clearSelection();
         }
+    }
+
+    public String getClassName(String typeName) {
+        JBTextField field = classNameFields.get(typeName);
+        return field != null ? field.getText().trim() : "";
     }
 }
