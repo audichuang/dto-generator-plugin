@@ -12,6 +12,7 @@ import com.intellij.psi.PsiPackage;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+import org.codehaus.plexus.util.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -181,18 +182,27 @@ public class ConfigDialog extends DialogWrapper {
      * @return 提取的電文ID
      */
     private String extractTranId(String msgId) {
-        if (msgId == null || msgId.isEmpty()) {
+        if (StringUtils.isBlank(msgId)) {
             return "";
         }
 
-        if (msgId.contains("-")) {
-            int startIndex = msgId.lastIndexOf("-") + 1;
-            int endIndex = msgId.indexOf(" ", startIndex);
-            return endIndex == -1 ? msgId.substring(startIndex) : msgId.substring(startIndex, endIndex);
+        // 先用空格分割，取得前半部分的英文代碼
+        String[] parts = StringUtils.split(msgId, " ", 2);
+        if (parts == null || parts.length == 0) {
+            return "";
         }
 
-        int spaceIndex = msgId.indexOf(" ");
-        return spaceIndex != -1 ? msgId.substring(0, spaceIndex) : msgId;
+        String codeSection = parts[0];
+        // 用 - 或 _ 分割英文代碼部分
+        String[] codeParts = StringUtils.split(codeSection, "[-_]");
+        if (codeParts == null || codeParts.length == 0) {
+            return "";
+        }
+
+        // 取得最後一個部分
+        String lastPart = codeParts[codeParts.length - 1];
+
+        return lastPart;
     }
 
     // Getter 方法
