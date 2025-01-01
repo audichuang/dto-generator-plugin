@@ -43,7 +43,7 @@ JSON 轉換功能。
 ## 安裝方法
 
 1. 下載插件
-    - 前往 [Releases](插件的release網址) 頁面
+    - 前往 [Releases](https://github.com/audichuang/dto-generator-plugin/releases) 頁面
     - 下載最新版本的 `DTO-Generator-Pro.jar` 檔案
 
 2. 在 IntelliJ IDEA 中安裝
@@ -139,6 +139,11 @@ A: 支援所有 Java 基本類型、包裝類型，以及常用類型如 String�
 A: 點擊 Setting 按鈕，可以自定義各種驗證註解的錯誤消息模板。
 
 ## 版本歷史
+
+### v1.2.1 (2025-01-01)
+
+- ✨ 新增 註解支援多行
+- 🎨 修正 大小駝峰轉換錯誤問題
 
 ### v1.2.0 (2024-12-29)
 
