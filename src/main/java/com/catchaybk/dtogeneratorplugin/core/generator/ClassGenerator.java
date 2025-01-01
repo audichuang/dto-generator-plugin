@@ -118,7 +118,20 @@ public class ClassGenerator {
 
     private void generateFieldComment(StringBuilder sb, Field field) {
         if (field.getComments() != null && !field.getComments().isEmpty()) {
-            sb.append("    /** ").append(field.getComments()).append(" */\n");
+            String[] commentLines = field.getComments().split("\n");
+
+            // 單行註解
+            if (commentLines.length == 1) {
+                sb.append("    /** ").append(commentLines[0].trim()).append(" */\n");
+            }
+            // 多行註解
+            else {
+                sb.append("    /**\n");
+                for (String line : commentLines) {
+                    sb.append("     * ").append(line.trim()).append("\n");
+                }
+                sb.append("     */\n");
+            }
         }
     }
 

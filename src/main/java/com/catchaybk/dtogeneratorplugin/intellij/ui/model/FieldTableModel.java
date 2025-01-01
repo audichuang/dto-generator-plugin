@@ -80,10 +80,86 @@ public class FieldTableModel extends DefaultTableModel {
     }
 
     public void processClipboardData(String clipboardData) {
-        Arrays.stream(clipboardData.split("\n"))
-                .map(String::trim)
-                .filter(row -> !row.isEmpty())
-                .forEach(this::processRow);
+        String[] rows = clipboardData.split("\n", -1);
+        StringBuilder currentComment = new StringBuilder();
+        String[] currentRow = null;
+
+        for (String row : rows) {
+            if (row.trim().isEmpty())
+                continue;
+
+            if (isNewDataRow(row)) {
+                if (currentRow != null) {
+                    // 添加之前的行
+                    addRowWithComment(currentRow, currentComment.toString());
+                }
+                // 處理新行
+                currentRow = processDataRow(row);
+                currentComment.setLength(0); // 清空註解
+            } else {
+                // 累積註解
+                if (!currentComment.isEmpty()) {
+                    currentComment.append("\n");
+                }
+                currentComment.append(row.trim());
+            }
+        }
+
+        // 添加最後一行
+        if (currentRow != null) {
+            addRowWithComment(currentRow, currentComment.toString());
+        }
+    }
+
+    /**
+     * 判斷是否為新的數據行
+     * 條件：
+     * 1. 以數字開頭
+     * 2. 包含至少3個以上的值（用tab或多個空格分隔）
+     * 3. 第二個值不能是純數字（避免誤判列舉值）
+     */
+    private boolean isNewDataRow(String row) {
+        // 先去除前後空格再判斷
+        String trimmedRow = row.trim();
+
+        // 排除 "1:" 或 "1." 這種格式
+        if (trimmedRow.matches("^\\d+[:.。].*")) {
+            return false;
+        }
+
+        if (!trimmedRow.matches("^\\s*\\d+.*")) {
+            return false;
+        }
+
+        // 處理多個空格或 tab
+        String[] parts = trimmedRow.split("\\s+|\\t+");
+        // 過濾掉空字符串
+        parts = Arrays.stream(parts)
+                .filter(part -> !part.trim().isEmpty())
+                .toArray(String[]::new);
+
+        if (parts.length < 3) {
+            return false;
+        }
+
+        // 檢查第二個值是否為純數字或是包含冒號、點號的格式（避免誤判列舉值）
+        if (parts.length > 1 && (parts[1].trim().matches("\\d+") ||
+                parts[1].contains(":") || parts[1].contains("."))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void addRowWithComment(String[] row, String comment) {
+        // 找到 Comments 列的索引
+        for (int i = 0; i < COLUMN_NAMES.length; i++) {
+            if ("Comments".equals(COLUMN_NAMES[i])) {
+                row[i] = (row[i] + " " + comment).trim();
+                break;
+            }
+        }
+        addRow(row);
     }
 
     /**
@@ -98,12 +174,25 @@ public class FieldTableModel extends DefaultTableModel {
             return;
         }
 
-        // 分割輸入數據
-        String[] parts = row.split("\\t|(?:  +)");
+        // 分割輸入數據，但保留註解部分
+        String[] mainParts = row.split("\\t|(?:  +)");
         List<String> values = new ArrayList<>();
-        for (String part : parts) {
+        StringBuilder comment = new StringBuilder();
+        boolean isComment = false;
+
+        for (String part : mainParts) {
             if (!part.trim().isEmpty()) {
-                values.add(part.trim());
+                if (part.startsWith("(") && !isComment) {
+                    // 開始註解部分
+                    isComment = true;
+                    comment.append(part);
+                } else if (isComment) {
+                    // 繼續累積註解
+                    comment.append(" ").append(part);
+                } else {
+                    // 一般欄位值
+                    values.add(part.trim());
+                }
             }
         }
 
@@ -116,6 +205,17 @@ public class FieldTableModel extends DefaultTableModel {
 
         // 智能分配數據到對應欄位
         distributeValues(values, newRow);
+
+        // 如果有註解，加入到 Comments 欄位
+        if (comment.length() > 0) {
+            // 尋找 Comments 欄位的索引
+            for (int i = 0; i < COLUMN_NAMES.length; i++) {
+                if ("Comments".equals(COLUMN_NAMES[i])) {
+                    newRow[i] = comment.toString();
+                    break;
+                }
+            }
+        }
 
         // 如果有層級數字，則添加行
         if (Arrays.stream(newRow).anyMatch(value -> value.matches("\\d+"))) {
@@ -500,5 +600,46 @@ public class FieldTableModel extends DefaultTableModel {
         }
         // Pattern 欄位保持為空
         newRow[6] = "";
+    }
+
+    /**
+     * 處理數據行，返回處理後的行數據
+     */
+    private String[] processDataRow(String row) {
+        String[] newRow = new String[getColumnCount()];
+        Arrays.fill(newRow, "");
+
+        // 使用現有的 processRow 邏輯處理數據
+        String[] mainParts = row.split("\\t|(?:  +)");
+        List<String> values = new ArrayList<>();
+        StringBuilder comment = new StringBuilder();
+        boolean isComment = false;
+
+        for (String part : mainParts) {
+            if (!part.trim().isEmpty()) {
+                if (part.startsWith("(") && !isComment) {
+                    isComment = true;
+                    comment.append(part);
+                } else if (isComment) {
+                    comment.append(" ").append(part);
+                } else {
+                    values.add(part.trim());
+                }
+            }
+        }
+
+        distributeValues(values, newRow);
+
+        // 設置註解
+        if (comment.length() > 0) {
+            for (int i = 0; i < COLUMN_NAMES.length; i++) {
+                if ("Comments".equals(COLUMN_NAMES[i])) {
+                    newRow[i] = comment.toString();
+                    break;
+                }
+            }
+        }
+
+        return newRow;
     }
 }
