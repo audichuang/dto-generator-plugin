@@ -137,13 +137,14 @@ public class ClassGenerator {
         }
 
         // 添加 JsonAlias 註解
-        List<String> aliases = new ArrayList<>();
+        Set<String> aliases = new HashSet<>();
         for (String style : config.jsonAliasStyles) {
             String alias = field.formatName(style);
             if (alias != null && !alias.equals(jsonPropertyName)) {
                 aliases.add(alias);
             }
         }
+
         if (!aliases.isEmpty()) {
             sb.append("    @JsonAlias({\"")
                     .append(String.join("\", \"", aliases))

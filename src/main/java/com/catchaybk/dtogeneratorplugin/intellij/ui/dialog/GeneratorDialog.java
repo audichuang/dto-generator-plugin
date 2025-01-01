@@ -71,15 +71,10 @@ public class GeneratorDialog extends DialogWrapper {
 
         // 添加列移動監聽器
         table.getTableHeader().setReorderingAllowed(true);
-        table.getColumnModel().getColumn(6).setResizable(false);
         table.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
             @Override
             public void columnMoved(TableColumnModelEvent e) {
-                if (e.getFromIndex() == 6 || e.getToIndex() == 6) {
-                    SwingUtilities.invokeLater(() -> {
-                        table.moveColumn(e.getToIndex(), 6);
-                    });
-                } else if (e.getFromIndex() != e.getToIndex()) {
+                if (e.getFromIndex() != e.getToIndex()) {
                     tableModel.updateColumnOrder(table.getColumnModel());
                 }
             }

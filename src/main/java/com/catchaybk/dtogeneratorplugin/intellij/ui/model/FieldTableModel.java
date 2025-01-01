@@ -272,44 +272,31 @@ public class FieldTableModel extends DefaultTableModel {
         List<Field> fields = new ArrayList<>();
         for (int i = 0; i < getRowCount(); i++) {
             try {
-                fields.add(createDtoField(i));
+                Map<String, String> fieldData = new HashMap<>();
+
+                // 使用當前列順序來獲取數據
+                for (int viewIndex = 0; viewIndex < getColumnCount(); viewIndex++) {
+                    String columnName = getColumnName(viewIndex);
+                    String value = getValueAt(i, viewIndex).toString();
+                    fieldData.put(columnName, value);
+                }
+
+                // 創建 Field 對象
+                Field field = new Field(
+                        Integer.parseInt(fieldData.getOrDefault("Level", "1")),
+                        fieldData.getOrDefault("Data Name", ""),
+                        fieldData.getOrDefault("Data Type", "String"),
+                        fieldData.getOrDefault("Size", ""),
+                        "Y".equalsIgnoreCase(fieldData.getOrDefault("Required", "N")),
+                        fieldData.getOrDefault("Comments", ""),
+                        fieldData.getOrDefault("Pattern", ""),
+                        isJava17);
+                fields.add(field);
             } catch (Exception e) {
                 // Skip invalid rows
             }
         }
         return fields;
-    }
-
-    private Field createDtoField(int row) {
-        Map<String, String> fieldData = new HashMap<>();
-
-        // 使用當前的列順序獲取數據
-        if (currentColumnOrder != null) {
-            for (int i = 0; i < getColumnCount(); i++) {
-                String columnName = currentColumnOrder.get(i);
-                // 找到對應的模型索引
-                int modelIndex = Arrays.asList(COLUMN_NAMES).indexOf(columnName);
-                String value = getValueAt(row, modelIndex).toString();
-                fieldData.put(columnName, value);
-            }
-        } else {
-            // 如果沒有自定義順序，使用默認順序
-            for (int i = 0; i < getColumnCount(); i++) {
-                String columnName = COLUMN_NAMES[i];
-                String value = getValueAt(row, i).toString();
-                fieldData.put(columnName, value);
-            }
-        }
-
-        return new Field(
-                Integer.parseInt(fieldData.getOrDefault("Level", "1")),
-                fieldData.getOrDefault("Data Name", ""),
-                fieldData.getOrDefault("Data Type", "String"),
-                fieldData.getOrDefault("Size", ""),
-                "Y".equalsIgnoreCase(fieldData.getOrDefault("Required", "N")),
-                fieldData.getOrDefault("Comments", ""),
-                fieldData.getOrDefault("Pattern", ""),
-                isJava17);
     }
 
     /**
@@ -488,13 +475,10 @@ public class FieldTableModel extends DefaultTableModel {
     /**
      * 更新列順序
      * 當用戶拖動列時調用，確保數據處理跟隨新的列順序
-     *
-     * @param columnModel 表格列模型
      */
     public void updateColumnOrder(TableColumnModel columnModel) {
         currentColumnOrder = new ArrayList<>();
         for (int viewIndex = 0; viewIndex < columnModel.getColumnCount(); viewIndex++) {
-            // 使用視圖索引獲取列名
             int modelIndex = columnModel.getColumn(viewIndex).getModelIndex();
             currentColumnOrder.add(COLUMN_NAMES[modelIndex]);
         }

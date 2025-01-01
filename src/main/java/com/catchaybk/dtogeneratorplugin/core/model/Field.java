@@ -1,17 +1,19 @@
 package com.catchaybk.dtogeneratorplugin.core.model;
 
+import com.catchaybk.dtogeneratorplugin.core.config.FieldConfig;
+import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.*;
-
-import com.catchaybk.dtogeneratorplugin.intellij.ui.dialog.ValidationMessageSettingDialog;
-import com.catchaybk.dtogeneratorplugin.core.config.FieldConfig;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 字段模型類
  * 表示DTO中的一個字段，包含所有字段相關的屬性和行為
- * 
+ * <p>
  * 主要功能：
  * 1. 管理字段的基本信息（名稱、類型、大小等）
  * 2. 處理字段類型的格式化和驗證
@@ -247,9 +249,13 @@ public class Field {
             case "大寫底線":
                 return toUpperSnakeCase(dataName);
             case "小駝峰":
-                return toCamelCase(dataName, false);
+                String smallCamel = toCamelCase(dataName, false);
+                // 確保第一個字母小寫
+                return Character.toLowerCase(smallCamel.charAt(0)) + smallCamel.substring(1);
             case "大駝峰":
-                return toCamelCase(dataName, true);
+                String bigCamel = toCamelCase(dataName, true);
+                // 確保第一個字母大寫
+                return Character.toUpperCase(bigCamel.charAt(0)) + bigCamel.substring(1);
             case "無":
                 return null; // 不添加 JsonAlias
             default:
@@ -258,26 +264,99 @@ public class Field {
     }
 
     private String toUpperSnakeCase(String input) {
-        String regex = "([a-z])([A-Z])";
-        String replacement = "$1_$2";
-        return input.replaceAll(regex, replacement).toUpperCase();
-    }
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
 
-    private String toCamelCase(String input, boolean capitalizeFirst) {
-        String[] parts = input.split("[_\\s]+");
-        StringBuilder camelCase = new StringBuilder();
+        // 先處理駝峰命名的情況
+        StringBuilder result = new StringBuilder();
+        result.append(Character.toUpperCase(input.charAt(0)));
 
-        for (int i = 0; i < parts.length; i++) {
-            String part = parts[i].toLowerCase();
-            if (i == 0 && !capitalizeFirst) {
-                camelCase.append(part);
+        for (int i = 1; i < input.length(); i++) {
+            char currentChar = input.charAt(i);
+            if (Character.isUpperCase(currentChar)) {
+                result.append('_').append(currentChar);
             } else {
-                camelCase.append(Character.toUpperCase(part.charAt(0)))
-                        .append(part.substring(1));
+                result.append(Character.toUpperCase(currentChar));
             }
         }
 
-        return camelCase.toString();
+        return result.toString();
+    }
+
+    /**
+     * 將字符串轉換為駝峰命名格式
+     * 處理以下情況：
+     * 1. 已經是駝峰：ProposalEntityList -> proposalEntityList/ProposalEntityList
+     * 2. 底線分隔：proposal_entity_list -> proposalEntityList/ProposalEntityList
+     * 3. 空格分隔：proposal entity list -> proposalEntityList/ProposalEntityList
+     *
+     * @param input           輸入字符串
+     * @param capitalizeFirst 是否首字母大寫
+     * @return 駝峰命名格式的字符串
+     */
+    private String toCamelCase(String input, boolean capitalizeFirst) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+
+        // 1. 先處理底線和空格分隔的情況
+        if (input.contains("_") || input.contains(" ")) {
+            String[] parts = input.split("[_\\s]+");
+            StringBuilder camelCase = new StringBuilder();
+
+            for (int i = 0; i < parts.length; i++) {
+                String part = parts[i].toLowerCase();
+                if (i == 0 && !capitalizeFirst) {
+                    camelCase.append(part);
+                } else {
+                    camelCase.append(Character.toUpperCase(part.charAt(0)))
+                            .append(part.substring(1).toLowerCase());
+                }
+            }
+            return camelCase.toString();
+        }
+
+        // 2. 處理已經是駝峰命名的情況
+        StringBuilder result = new StringBuilder();
+        StringBuilder currentWord = new StringBuilder();
+
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+
+            // 檢測單詞邊界
+            if (i > 0 && Character.isUpperCase(ch)) {
+                // 完成前一個單詞
+                if (currentWord.length() > 0) {
+                    appendWord(result, currentWord.toString(), result.length() == 0 && !capitalizeFirst);
+                    currentWord = new StringBuilder();
+                }
+            }
+            currentWord.append(ch);
+        }
+
+        // 處理最後一個單詞
+        if (currentWord.length() > 0) {
+            appendWord(result, currentWord.toString(), result.length() == 0 && !capitalizeFirst);
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * 添加單詞到結果中
+     */
+    private void appendWord(StringBuilder result, String word, boolean toLowerCase) {
+        if (word.length() == 0)
+            return;
+
+        if (toLowerCase) {
+            result.append(Character.toLowerCase(word.charAt(0)))
+                    .append(word.substring(1).toLowerCase());
+        } else {
+            result.append(Character.toUpperCase(word.charAt(0)))
+                    .append(word.substring(1).toLowerCase());
+        }
     }
 
     /**
