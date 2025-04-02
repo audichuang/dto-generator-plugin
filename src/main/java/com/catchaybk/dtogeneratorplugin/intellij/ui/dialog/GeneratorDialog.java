@@ -45,11 +45,12 @@ import java.util.*;
  */
 public class GeneratorDialog extends DialogWrapper {
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final Color HEADER_COLOR = new JBColor(new Color(240, 240, 240), new Color(50, 50, 50));
-    private static final Color BUTTON_BACKGROUND = new JBColor(new Color(0, 122, 204), new Color(64, 81, 153));
-    private static final Color HELP_BACKGROUND = new JBColor(new Color(250, 250, 220), new Color(60, 63, 50));
+    private static final Color HEADER_COLOR = new JBColor(new Color(240, 245, 250), new Color(43, 45, 48));
+    private static final Color BUTTON_BACKGROUND = new JBColor(new Color(24, 115, 204), new Color(75, 110, 175));
+    private static final Color HELP_BACKGROUND = new JBColor(new Color(248, 250, 252), new Color(43, 45, 48));
     private static final Color BUTTON_FOREGROUND = new JBColor(Color.WHITE, Color.WHITE);
-    private static final int TABLE_ROW_HEIGHT = 28;
+    private static final Color BORDER_COLOR = new JBColor(new Color(218, 220, 224), new Color(60, 63, 65));
+    private static final int TABLE_ROW_HEIGHT = 32;
 
     private final FieldTableModel tableModel;
     private final JBTable table;
@@ -83,7 +84,7 @@ public class GeneratorDialog extends DialogWrapper {
         // 設置表格外觀
         table.setRowHeight(TABLE_ROW_HEIGHT);
         table.setShowGrid(true);
-        table.setGridColor(JBColor.border().darker());
+        table.setGridColor(BORDER_COLOR);
         table.setStriped(true);
 
         // 自定義表頭
@@ -96,9 +97,12 @@ public class GeneratorDialog extends DialogWrapper {
                 JComponent comp = (JComponent) super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
                 comp.setFont(comp.getFont().deriveFont(Font.BOLD));
-                comp.setBorder(new MatteBorder(0, 0, 1, 1, JBColor.border()));
-                comp.setBackground(UIUtil.getPanelBackground().darker());
+                comp.setBorder(new MatteBorder(0, 0, 1, 1, BORDER_COLOR));
+                comp.setBackground(HEADER_COLOR);
                 comp.setForeground(JBColor.foreground());
+
+                // 增加行高
+                comp.setPreferredSize(new Dimension(comp.getPreferredSize().width, 36));
 
                 // 設置列標題提示
                 String toolTip = switch (column) {
@@ -117,6 +121,7 @@ public class GeneratorDialog extends DialogWrapper {
             }
         });
 
+        // 自定義單元格渲染器
         table.getColumnModel().getColumn(2).setCellRenderer(new FieldTableModel.ValidationCellRenderer());
         table.getColumnModel().getColumn(3).setCellRenderer(new FieldTableModel.ValidationCellRenderer());
         table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -164,24 +169,22 @@ public class GeneratorDialog extends DialogWrapper {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(HEADER_COLOR);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(0, 0, 1, 0, JBColor.border()),
-                JBUI.Borders.empty(12, 15)));
+                new MatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                JBUI.Borders.empty(16, 20)));
 
         JLabel titleLabel = new JBLabel("DTO 欄位定義");
-        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f));
+        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 18f));
         headerPanel.add(titleLabel, BorderLayout.CENTER);
-
-        dialogPanel.add(headerPanel, BorderLayout.NORTH);
 
         // 添加操作提示面板
         JPanel instructionPanel = new JBPanel<>();
         instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
         instructionPanel.setBackground(HELP_BACKGROUND);
         instructionPanel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(0, 0, 1, 0, JBColor.border()),
-                JBUI.Borders.empty(8, 15)));
+                new MatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                JBUI.Borders.empty(12, 20)));
 
-        JLabel instructionLabel = new JBLabel("<html><b>使用說明:</b><ul style='margin-top:0;'>" +
+        JLabel instructionLabel = new JBLabel("<html><b>使用說明:</b><ul style='margin-top:0;margin-left:15px;'>" +
                 "<li>從Excel複製欄位數據並直接貼上</li>" +
                 "<li>添加完數據後點擊 <b>配置</b> 按鈕設置類名和其他信息</li>" +
                 "<li>所有欄位必須指定資料類型</li>" +
@@ -189,7 +192,11 @@ public class GeneratorDialog extends DialogWrapper {
                 "</ul></html>");
         instructionPanel.add(instructionLabel);
 
-        dialogPanel.add(instructionPanel, BorderLayout.NORTH);
+        // 組合頭部面板
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(headerPanel, BorderLayout.NORTH);
+        topPanel.add(instructionPanel, BorderLayout.CENTER);
+        dialogPanel.add(topPanel, BorderLayout.NORTH);
 
         // 創建內容面板
         JPanel contentPanel = new JPanel(new BorderLayout());
@@ -197,21 +204,23 @@ public class GeneratorDialog extends DialogWrapper {
         contentPanel.add(createButtonPanel(), BorderLayout.SOUTH);
 
         dialogPanel.add(contentPanel, BorderLayout.CENTER);
-        dialogPanel.setPreferredSize(new Dimension(900, 600));
+        dialogPanel.setPreferredSize(new Dimension(950, 650));
         return dialogPanel;
     }
 
     private JComponent createTablePanel() {
         JBScrollPane scrollPane = new JBScrollPane(table);
-        scrollPane.setBorder(JBUI.Borders.empty(10));
+        scrollPane.setBorder(JBUI.Borders.empty(15));
+        // 設置滾動速度
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         return scrollPane;
     }
 
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new BorderLayout());
         buttonPanel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(1, 0, 0, 0, JBColor.border()),
-                JBUI.Borders.empty(10, 15)));
+                new MatteBorder(1, 0, 0, 0, BORDER_COLOR),
+                JBUI.Borders.empty(15, 20)));
 
         // 創建左側輔助按鈕面板
         JPanel leftButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
@@ -219,7 +228,7 @@ public class GeneratorDialog extends DialogWrapper {
         buttonPanel.add(leftButtonPanel, BorderLayout.WEST);
 
         // 創建右側主要按鈕面板
-        JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        JPanel rightButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 5));
         addMainButtons(rightButtonPanel);
         buttonPanel.add(rightButtonPanel, BorderLayout.EAST);
 
@@ -248,17 +257,22 @@ public class GeneratorDialog extends DialogWrapper {
         JButton configButton = createStyledButton("配置", e -> showConfigDialog());
         configButton.setBackground(BUTTON_BACKGROUND);
         configButton.setForeground(BUTTON_FOREGROUND);
-        configButton.setFont(configButton.getFont().deriveFont(Font.BOLD));
-        configButton.setToolTipText("配置DTO類名和其他信息");
+        configButton.setToolTipText("配置生成的DTO類名和其他參數");
         panel.add(configButton);
     }
 
     private JButton createStyledButton(String text, ActionListener listener) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(100, 35));
-        button.setMargin(JBUI.insets(5, 15));
+        button.setPreferredSize(new Dimension(90, 36));
         button.setFocusPainted(false);
         button.addActionListener(listener);
+
+        // 設置現代風格的按鈕邊框和字體
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(4, 10, 4, 10)));
+        button.setFont(UIUtil.getLabelFont().deriveFont(13f));
+
         return button;
     }
 
@@ -331,13 +345,25 @@ public class GeneratorDialog extends DialogWrapper {
             }
         }
 
-        configDialog = createConfigDialog();
-        if (configDialog.showAndGet()) {
-            updateConfigurationFromDialog();
-            configurationDone = true;
-
-            // 顯示配置完成提示
-            showCompletionNotification();
+        try {
+            // 創建配置對話框並賦值給成員變量
+            configDialog = createConfigDialog();
+            
+            // 顯示對話框並等待結果
+            if (configDialog != null && configDialog.showAndGet()) {
+                updateConfigurationFromDialog();
+                configurationDone = true;
+    
+                // 顯示配置完成提示
+                showCompletionNotification();
+            }
+        } catch (Exception e) {
+            Messages.showErrorDialog(
+                project, 
+                "配置對話框打開失敗：" + e.getMessage(), 
+                "錯誤"
+            );
+            e.printStackTrace();
         }
     }
 
@@ -352,7 +378,8 @@ public class GeneratorDialog extends DialogWrapper {
     }
 
     private ConfigDialog createConfigDialog() {
-        return new ConfigDialog(
+        // 創建配置對話框並返回
+        ConfigDialog dialog = new ConfigDialog(
                 msgId,
                 author,
                 mainClassName,
@@ -361,6 +388,9 @@ public class GeneratorDialog extends DialogWrapper {
                 collectLevelTypes(),
                 project,
                 getCurrentPackage());
+
+        // 確保完成初始化
+        return dialog;
     }
 
     private void updateConfigurationFromDialog() {

@@ -8,21 +8,17 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.ui.ValidationInfo;
-import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiPackage;
-import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.util.TextFieldCompletionProvider;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import org.codehaus.plexus.util.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -46,11 +42,13 @@ public class ConfigDialog extends DialogWrapper {
     private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
     private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 150;
-    private static final int FIELD_HEIGHT = 32;
-    private static final int SCROLL_WIDTH = 850;
-    private static final int SCROLL_HEIGHT = 650;
-    private static final Color HEADER_COLOR = new JBColor(new Color(240, 240, 240), new Color(50, 50, 50));
+    private static final int FIELD_HEIGHT = 36;
+    private static final int SCROLL_WIDTH = 880;
+    private static final int SCROLL_HEIGHT = 680;
+    private static final Color HEADER_COLOR = new JBColor(new Color(240, 245, 250), new Color(43, 45, 48));
     private static final Color TOOLTIP_BACKGROUND = new JBColor(new Color(255, 255, 225), new Color(60, 63, 65));
+    private static final Color ACCENT_COLOR = new JBColor(new Color(24, 115, 204), new Color(75, 110, 175));
+    private static final Color BORDER_COLOR = new JBColor(new Color(218, 220, 224), new Color(60, 63, 65));
     private static final String[] JSON_STYLES = {
             "原始格式 (studentName -> studentName)",
             "全大寫 (studentName -> STUDENTNAME)",
@@ -95,11 +93,13 @@ public class ConfigDialog extends DialogWrapper {
         this.project = project;
         this.levelTypesMap = levelTypesMap;
         this.config = new ConfigData(msgId, author, mainClassName, isJava17, isUpstream, initialPackage);
-        this.ui = new UIComponents();
 
         UIManager.put("ToolTip.background", TOOLTIP_BACKGROUND);
         UIManager.put("ToolTip.border", BorderFactory.createLineBorder(JBColor.border()));
         UIManager.put("ToolTip.font", UIUtil.getToolTipFont().deriveFont(12f));
+
+        // 確保ui在初始化後才設置
+        this.ui = new UIComponents();
 
         init();
         setTitle(TITLE);
@@ -114,21 +114,22 @@ public class ConfigDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
-        mainPanel.setBorder(JBUI.Borders.empty(5));
+        mainPanel.setBorder(JBUI.Borders.empty(0));
 
         // 創建頂部標題
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(HEADER_COLOR);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(0, 0, 1, 0, JBColor.border()),
-                JBUI.Borders.empty(12, 15)));
+                new MatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                JBUI.Borders.empty(16, 20)));
 
         JLabel titleLabel = new JBLabel("配置 DTO 生成參數");
-        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f));
+        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 18f));
         headerPanel.add(titleLabel, BorderLayout.CENTER);
 
         // 添加一個提示標籤
-        JLabel helpLabel = new JBLabel("<html><body><i>填寫配置以生成標準化的DTO類，包含序列化支持和驗證</i></body></html>");
+        JLabel helpLabel = new JBLabel(
+                "<html><body style='font-size: 12px'><i>填寫配置以生成標準化的DTO類，包含序列化支持和驗證</i></body></html>");
         helpLabel.setFont(UIUtil.getFont(UIUtil.FontSize.SMALL, helpLabel.getFont()));
         helpLabel.setForeground(JBColor.GRAY);
         headerPanel.add(helpLabel, BorderLayout.SOUTH);
@@ -173,15 +174,17 @@ public class ConfigDialog extends DialogWrapper {
         // 使用 BoxLayout 來控制垂直布局
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(JBUI.Borders.empty(0, 5, 5, 5));
+        contentPanel.setBorder(JBUI.Borders.empty(0, 15, 15, 15));
         contentPanel.add(basicPanel);
-        contentPanel.add(Box.createVerticalStrut(10)); // 添加固定間距
+        contentPanel.add(Box.createVerticalStrut(15)); // 增加間距
         contentPanel.add(configPanel);
 
         // 將整個內容放入滾動面板
         JBScrollPane scrollPane = new JBScrollPane(contentPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
         scrollPane.setPreferredSize(new Dimension(SCROLL_WIDTH, SCROLL_HEIGHT));
+        // 設置滾動速度
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         return mainPanel;
@@ -192,22 +195,32 @@ public class ConfigDialog extends DialogWrapper {
      * 根據電文方向決定是否顯示電文ID輸入框，並自動填充ID
      */
     private void updateTranIdVisibility() {
+        // 確保ui已初始化
+        if (ui == null || ui.directionComboBox == null || ui.tranIdPanel == null) {
+            return;
+        }
+
         String direction = (String) ui.directionComboBox.getSelectedItem();
         boolean showTranId = !"無".equals(direction);
         ui.tranIdPanel.setVisible(showTranId);
 
         if (!showTranId) {
-            ui.tranIdField.setText("");
+            if (ui.tranIdField != null) {
+                ui.tranIdField.setText("");
+            }
             updateAllClassNames();
-        } else if (ui.tranIdField.getText().isEmpty() && ui.msgIdField.getText() != null) {
+        } else if (ui.tranIdField != null && ui.tranIdField.getText().isEmpty() && ui.msgIdField != null
+                && ui.msgIdField.getText() != null) {
             String msgId = ui.msgIdField.getText().trim();
             String tranId = extractTranId(msgId);
             ui.tranIdField.setText(tranId);
             updateAllClassNames();
         }
 
-        ui.tranIdPanel.revalidate();
-        ui.tranIdPanel.repaint();
+        if (ui.tranIdPanel != null) {
+            ui.tranIdPanel.revalidate();
+            ui.tranIdPanel.repaint();
+        }
     }
 
     /**
@@ -357,15 +370,38 @@ public class ConfigDialog extends DialogWrapper {
     }
 
     /**
-     * 創建帶有文檔監聽器的文本框
+     * 創建統一風格的文本輸入框
      *
      * @param initialText 初始文本
-     * @return 配置好的文本框
+     * @return 樣式化的文本輸入框
      */
     private JBTextField createTextField(String initialText) {
-        JBTextField field = new JBTextField(initialText);
-        field.getDocument().addDocumentListener(createDocumentListener());
-        return field;
+        JBTextField textField = new JBTextField(initialText);
+        textField.setPreferredSize(new Dimension(300, FIELD_HEIGHT));
+
+        // 應用現代化邊框和內邊距
+        textField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+
+        // 添加焦點效果
+        textField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                textField.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(ACCENT_COLOR, 1),
+                        BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                textField.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                        BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+            }
+        });
+
+        return textField;
     }
 
     /**
@@ -416,6 +452,11 @@ public class ConfigDialog extends DialogWrapper {
      * 當MSGID或電文方向改變時自動更新所有相關類名
      */
     private void updateAllClassNames() {
+        // 確保ui和必要的組件已初始化
+        if (ui == null || ui.directionComboBox == null || ui.mainClassField == null) {
+            return;
+        }
+
         String direction = (String) ui.directionComboBox.getSelectedItem();
         String effectiveId = getEffectiveId();
 
@@ -427,9 +468,13 @@ public class ConfigDialog extends DialogWrapper {
         // 更新所有子類名
         for (Map.Entry<String, JBTextField> entry : classNameFields.entrySet()) {
             String baseName = entry.getKey();
-            String newClassName = ClassNameGenerator.generateClassName(
-                    effectiveId, direction, baseName, false);
-            entry.getValue().setText(newClassName);
+            JBTextField field = entry.getValue();
+
+            if (field != null) {
+                String newClassName = ClassNameGenerator.generateClassName(
+                        effectiveId, direction, baseName, false);
+                field.setText(newClassName);
+            }
         }
     }
 
@@ -439,6 +484,10 @@ public class ConfigDialog extends DialogWrapper {
      * @return 根據當前電文方向返回應的ID
      */
     private String getEffectiveId() {
+        if (ui == null || ui.directionComboBox == null || ui.msgIdField == null || ui.tranIdField == null) {
+            return "";
+        }
+
         String direction = (String) ui.directionComboBox.getSelectedItem();
         return "無".equals(direction) ? ui.msgIdField.getText().trim() : ui.tranIdField.getText().trim();
     }
@@ -530,103 +579,202 @@ public class ConfigDialog extends DialogWrapper {
         final JPanel jsonAliasPanel;
 
         UIComponents() {
+            // 創建組件
             packageChooser = createPackageChooser();
-            msgIdField = createTextField(config.msgId);
-            msgIdField.setToolTipText("輸入MSGID，用於生成類名前綴，例如：CSTMR_INF 客戶資訊");
+
+            msgIdField = createTextField("");
+            msgIdField.getDocument().addDocumentListener(createDocumentListener());
+            msgIdField.setToolTipText("輸入電文識別碼，格式如：AC001-Upload 會員資料");
 
             directionComboBox = createDirectionComboBox();
-            directionComboBox.setToolTipText("選擇電文的方向，影響類名的後綴（Tranrq/Tranrs）");
 
             tranIdPanel = new JPanel(new GridBagLayout());
+            tranIdPanel.setOpaque(false);
+
             tranIdField = createTextField("");
-            tranIdField.setToolTipText("電文ID，用於生成類名前綴，自動從MSGID提取");
+            tranIdField.getDocument().addDocumentListener(createDocumentListener());
+            tranIdField.setToolTipText("電文ID，用於命名");
 
-            authorField = createTextField(config.author);
-            authorField.setToolTipText("輸入作者名稱，將顯示在生成的類文檔註解中");
+            authorField = createTextField(config.author != null ? config.author : "");
+            authorField.setToolTipText("輸入作者名稱");
 
-            rememberAuthorBox = new JCheckBox("記住作者", !config.author.isEmpty());
-            rememberAuthorBox.setToolTipText("下次打開時自動填充作者名稱");
+            rememberAuthorBox = new JCheckBox("記住作者");
+            rememberAuthorBox.setOpaque(false);
+            rememberAuthorBox.setSelected(StringUtils.isNotBlank(config.author));
+            rememberAuthorBox.setFont(UIUtil.getFont(UIUtil.FontSize.SMALL, rememberAuthorBox.getFont()));
 
             javaVersionBox = createJavaVersionBox();
-            javaVersionBox.setToolTipText("選擇Java版本，決定使用jakarta或javax的驗證註解");
+            javaVersionBox.setSelectedIndex(config.isJava17 ? 1 : 0);
+            javaVersionBox.setToolTipText("選擇目標Java版本");
 
             mainClassField = createTextField(config.mainClassName);
-            mainClassField.setToolTipText("主類的名稱，會根據MSGID和電文方向自動生成");
+            mainClassField.getDocument().addDocumentListener(createDocumentListener());
+            mainClassField.setToolTipText("輸入主類名稱");
 
             jsonPropertyStyleCombo = new JComboBox<>(JSON_STYLES);
-            jsonPropertyStyleCombo.setToolTipText("選擇JSON屬性的格式風格，影響@JsonProperty註解的值");
-            jsonPropertyStyleCombo.addActionListener(e -> updateJsonAliasList());
+            jsonPropertyStyleCombo.setSelectedIndex(0);
+            jsonPropertyStyleCombo.setToolTipText("選擇JSON屬性名的格式化方式");
+            styleComboBox(jsonPropertyStyleCombo);
 
             jsonAliasStyleList = new JList<>(JSON_ALIAS_OPTIONS);
             jsonAliasStyleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-            jsonAliasStyleList.setVisibleRowCount(4);
-            jsonAliasStyleList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            jsonAliasStyleList.setToolTipText("選擇JSON別名的格式風格，影響@JsonAlias註解的值");
+            jsonAliasStyleList.setSelectedIndex(0);
+            jsonAliasStyleList.setVisibleRowCount(3);
+            jsonAliasStyleList.setCellRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
+                    JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
+                            cellHasFocus);
+                    label.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+                    return label;
+                }
+            });
 
             jsonAliasScrollPane = new JBScrollPane(jsonAliasStyleList);
-            jsonAliasScrollPane.setPreferredSize(new Dimension(400, 100));
+            jsonAliasScrollPane.setPreferredSize(new Dimension(400, 80));
+            jsonAliasScrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
 
             jsonAliasPanel = new JPanel(new BorderLayout());
-            JLabel tipLabel = new JLabel("<html><font color='gray'>提示: 按住 Ctrl 可以選擇多個格式</font></html>");
-            tipLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 0));
-            jsonAliasPanel.add(tipLabel, BorderLayout.NORTH);
             jsonAliasPanel.add(jsonAliasScrollPane, BorderLayout.CENTER);
 
-            jsonPropertyStyleCombo.setSelectedItem("原始格式");
+            // 添加溫馨提示
+            JLabel tipLabel = new JLabel("<html><font color='gray' size='2'>提示: 按住 Ctrl 可以選擇多個格式</font></html>");
+            tipLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 0));
+            jsonAliasPanel.add(tipLabel, BorderLayout.NORTH);
+
+            // 初始化包路徑
+            packageChooser.setText(config.initialPackage);
+
+            // 初始化電文ID
+            msgIdField.setText(config.msgId);
+
+            // 初始化電文方向
+            directionComboBox.setSelectedIndex(config.isUpstream ? 1 : 2);
+
+            // 重要：在所有組件初始化完成後再添加事件監聽器
+            addEventListeners();
+
+            // 初始化UI狀態 - 確保添加事件監聽器後再調用
+            updateTranIdVisibility();
             updateJsonAliasList();
-
-            // 添加狀態提示標籤
-            JPanel statusPanel = new JPanel(new BorderLayout());
-            JLabel statusLabel = new JLabel("<html><font color='gray'>* 必填欄位</font></html>");
-            statusPanel.add(statusLabel, BorderLayout.EAST);
-            jsonAliasPanel.add(statusPanel, BorderLayout.SOUTH);
         }
 
-        private TextFieldWithBrowseButton createPackageChooser() {
-            TextFieldWithBrowseButton chooser = new TextFieldWithBrowseButton();
-            chooser.setText(config.initialPackage);
-            chooser.addActionListener(e -> showPackageChooserDialog(chooser));
-            chooser.getTextField().setEditable(true);
-            chooser.getTextField().setToolTipText("輸入或選擇目標包路徑，生成的DTO類將放在此包下");
-            return chooser;
-        }
-
-        private JComboBox<String> createDirectionComboBox() {
-            JComboBox<String> box = new JComboBox<>(MESSAGE_DIRECTIONS);
-            box.setSelectedItem("無");
-
-            // 設置下拉選單的大小
-            box.setPreferredSize(new Dimension(150, FIELD_HEIGHT));
-            box.setMaximumSize(new Dimension(150, FIELD_HEIGHT));
-
-            // 使用 ActionListener
-            box.addActionListener(e -> {
+        private void addEventListeners() {
+            // 將事件監聽器設置集中在一個方法中
+            directionComboBox.addActionListener(e -> {
                 updateTranIdVisibility();
                 updateAllClassNames();
             });
 
-            return box;
+            jsonPropertyStyleCombo.addActionListener(e -> updateJsonAliasList());
+        }
+
+        private TextFieldWithBrowseButton createPackageChooser() {
+            TextFieldWithBrowseButton chooser = new TextFieldWithBrowseButton();
+            JTextField textField = chooser.getTextField();
+            textField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+            textField.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent evt) {
+                    textField.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(ACCENT_COLOR, 1),
+                            BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                }
+
+                @Override
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    textField.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                            BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                }
+            });
+            textField.setToolTipText("選擇或輸入目標包路徑");
+            chooser.addActionListener(e -> showPackageChooserDialog(chooser));
+            return chooser;
+        }
+
+        private JComboBox<String> createDirectionComboBox() {
+            JComboBox<String> comboBox = new JComboBox<>(MESSAGE_DIRECTIONS);
+            styleComboBox(comboBox);
+            comboBox.setToolTipText("選擇電文的方向類型");
+            comboBox.addActionListener(e -> {
+                String selected = (String) comboBox.getSelectedItem();
+                updateTranIdVisibility();
+                updateAllClassNames();
+            });
+            return comboBox;
         }
 
         private JComboBox<String> createJavaVersionBox() {
-            JComboBox<String> box = new JComboBox<>(JAVA_VERSIONS);
-            box.setSelectedItem(config.isJava17 ? "Java 17" : "Java 8");
-            return box;
+            JComboBox<String> comboBox = new JComboBox<>(JAVA_VERSIONS);
+            styleComboBox(comboBox);
+            return comboBox;
         }
 
         private void updateJsonAliasList() {
-            String selectedProperty = ((String) jsonPropertyStyleCombo.getSelectedItem()).split(" ")[0];
-
-            DefaultListModel<String> model = new DefaultListModel<>();
-            for (String option : JSON_ALIAS_OPTIONS) {
-                String format = option.split(" ")[0];
-                if (!format.equals(selectedProperty)) {
-                    model.addElement(option);
-                }
+            // 確保組件已初始化
+            if (jsonPropertyStyleCombo == null || jsonAliasStyleList == null) {
+                return;
             }
 
-            jsonAliasStyleList.setModel(model);
+            int selectedIndex = jsonPropertyStyleCombo.getSelectedIndex();
+            // 防止添加兩次相同格式
             jsonAliasStyleList.clearSelection();
+
+            if (selectedIndex > 0) {
+                // 如果選擇了除"原始格式"以外的選項，那麼將其添加為別名
+                jsonAliasStyleList.setSelectedIndex(selectedIndex);
+            }
+        }
+
+        /**
+         * 統一樣式文本輸入框
+         */
+        private void styleTextField(JTextField textField) {
+            textField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+
+            textField.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent evt) {
+                    textField.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(ACCENT_COLOR, 1),
+                            BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                }
+
+                @Override
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    textField.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                            BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+                }
+            });
+        }
+
+        /**
+         * 統一樣式下拉框
+         */
+        private void styleComboBox(JComboBox<?> comboBox) {
+            comboBox.setBackground(UIUtil.getTextFieldBackground());
+            comboBox.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                    BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+            // 設置現代化的渲染器
+            comboBox.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
+                    JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected,
+                            cellHasFocus);
+                    label.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+                    return label;
+                }
+            });
         }
     }
 }

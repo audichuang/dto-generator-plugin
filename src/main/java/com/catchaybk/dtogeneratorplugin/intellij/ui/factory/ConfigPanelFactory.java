@@ -19,30 +19,30 @@ import java.util.Map;
  * 負責創建各種配置面板
  */
 public class ConfigPanelFactory {
-    private static final int LABEL_WIDTH = 120;
-    private static final int FIELD_HEIGHT = 32;
-    private static final int SECTION_SPACING = 15;
-    private static final Color HEADER_BACKGROUND = new JBColor(new Color(232, 239, 247), new Color(49, 51, 53));
-    private static final Color LABEL_BACKGROUND = new JBColor(new Color(245, 245, 245), new Color(43, 43, 43));
-    private static final Color SEPARATOR_COLOR = new JBColor(new Color(220, 220, 220), new Color(60, 63, 65));
-    private static final Color FOCUS_COLOR = new JBColor(new Color(0, 120, 215), new Color(75, 110, 175));
+    private static final int LABEL_WIDTH = 130;
+    private static final int FIELD_HEIGHT = 36;
+    private static final int SECTION_SPACING = 20;
+    private static final Color HEADER_BACKGROUND = new JBColor(new Color(240, 245, 250), new Color(43, 45, 48));
+    private static final Color LABEL_BACKGROUND = new JBColor(new Color(245, 248, 250), new Color(43, 43, 43));
+    private static final Color SEPARATOR_COLOR = new JBColor(new Color(218, 220, 224), new Color(60, 63, 65));
+    private static final Color FOCUS_COLOR = new JBColor(new Color(24, 115, 204), new Color(75, 110, 175));
 
     /**
      * 創建基本配置面板
      */
     public static JPanel createBasicConfigPanel(JComponent[] components, String[] labels) {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(JBUI.Borders.empty(10, 10, 15, 10));
+        panel.setBorder(JBUI.Borders.empty(15, 10, 20, 10));
 
         // 創建標題
         JLabel titleLabel = new JBLabel("基本配置");
-        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 14f));
+        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 15f));
 
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setBackground(HEADER_BACKGROUND);
         titlePanel.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 1, 0, SEPARATOR_COLOR),
-                JBUI.Borders.empty(8, 10)));
+                JBUI.Borders.empty(10, 15)));
         titlePanel.add(titleLabel, BorderLayout.WEST);
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -69,17 +69,17 @@ public class ConfigPanelFactory {
     public static JPanel createTypeConfigPanel(Map<Integer, List<String>> levelTypesMap,
             Map<String, JBTextField> classNameFields) {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(JBUI.Borders.empty(5, 10, 10, 10));
+        panel.setBorder(JBUI.Borders.empty(5, 10, 15, 10));
 
         // 創建標題
         JLabel titleLabel = new JBLabel("類型配置");
-        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 14f));
+        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 15f));
 
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setBackground(HEADER_BACKGROUND);
         titlePanel.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 1, 0, SEPARATOR_COLOR),
-                JBUI.Borders.empty(8, 10)));
+                JBUI.Borders.empty(10, 15)));
 
         // 添加說明文字
         JPanel titleContentPanel = new JPanel(new BorderLayout());
@@ -118,7 +118,7 @@ public class ConfigPanelFactory {
     private static GridBagConstraints createDefaultConstraints() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = JBUI.insets(8, 10, 8, 10);
+        gbc.insets = JBUI.insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.WEST;
         return gbc;
     }
@@ -155,26 +155,7 @@ public class ConfigPanelFactory {
         if (field instanceof JTextField) {
             field.setPreferredSize(new Dimension(300, FIELD_HEIGHT));
 
-            // 創建具有現代感的邊框效果
-            JTextField textField = (JTextField) field;
-            textField.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(JBColor.border(), 1),
-                    JBUI.Borders.empty(2, 6)));
-
-            // 添加焦點邊框效果
-            textField.addFocusListener(new java.awt.event.FocusAdapter() {
-                public void focusGained(java.awt.event.FocusEvent evt) {
-                    textField.setBorder(BorderFactory.createCompoundBorder(
-                            new LineBorder(FOCUS_COLOR, 1),
-                            JBUI.Borders.empty(2, 6)));
-                }
-
-                public void focusLost(java.awt.event.FocusEvent evt) {
-                    textField.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(JBColor.border(), 1),
-                            JBUI.Borders.empty(2, 6)));
-                }
-            });
+            // 保持現有的邊框樣式
         } else if (field instanceof JComboBox) {
             field.setPreferredSize(new Dimension(300, FIELD_HEIGHT));
         }
@@ -198,21 +179,21 @@ public class ConfigPanelFactory {
 
             // 創建現代風格的文字框
             field.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(JBColor.border(), 1),
-                    JBUI.Borders.empty(2, 6)));
+                    BorderFactory.createLineBorder(SEPARATOR_COLOR, 1),
+                    JBUI.Borders.empty(6, 8)));
 
             // 添加焦點邊框效果
             field.addFocusListener(new java.awt.event.FocusAdapter() {
                 public void focusGained(java.awt.event.FocusEvent evt) {
                     field.setBorder(BorderFactory.createCompoundBorder(
                             new LineBorder(FOCUS_COLOR, 1),
-                            JBUI.Borders.empty(2, 6)));
+                            JBUI.Borders.empty(6, 8)));
                 }
 
                 public void focusLost(java.awt.event.FocusEvent evt) {
                     field.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(JBColor.border(), 1),
-                            JBUI.Borders.empty(2, 6)));
+                            BorderFactory.createLineBorder(SEPARATOR_COLOR, 1),
+                            JBUI.Borders.empty(6, 8)));
                 }
             });
 
@@ -231,11 +212,11 @@ public class ConfigPanelFactory {
 
     private static void addLevelHeader(JPanel panel, GridBagConstraints gbc, int row, int level) {
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new JBColor(new Color(241, 243, 245), new Color(45, 48, 50)));
-        headerPanel.setBorder(JBUI.Borders.empty(5, 8));
+        headerPanel.setBackground(LABEL_BACKGROUND);
+        headerPanel.setBorder(JBUI.Borders.empty(8, 12));
 
         JLabel header = new JLabel("第 " + level + " 層級類型配置");
-        header.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 13f));
+        header.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 14f));
         headerPanel.add(header, BorderLayout.WEST);
 
         // 添加說明文字
@@ -245,32 +226,37 @@ public class ConfigPanelFactory {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.gridwidth = 2;
-        gbc.insets = JBUI.insets(10, 0, 5, 0);
+        gbc.insets = JBUI.insets(12, 0, 8, 0);
         panel.add(headerPanel, gbc);
 
-        gbc.gridwidth = 1;
+        // 重置insets
         gbc.insets = JBUI.insets(8, 10, 8, 10);
+        gbc.gridwidth = 1;
     }
 
     private static void addSeparator(JPanel panel, GridBagConstraints gbc, int row) {
         JSeparator separator = new JSeparator();
         separator.setForeground(SEPARATOR_COLOR);
+        separator.setBackground(UIUtil.getPanelBackground());
 
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.gridwidth = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = JBUI.insets(SECTION_SPACING, 0, SECTION_SPACING, 0);
+        gbc.insets = JBUI.insets(SECTION_SPACING / 2, 0, SECTION_SPACING / 2, 0);
         panel.add(separator, gbc);
 
-        gbc.gridwidth = 1;
+        // 重置insets
         gbc.insets = JBUI.insets(8, 10, 8, 10);
+        gbc.gridwidth = 1;
     }
 
     private static void addBottomSpacer(JPanel panel, GridBagConstraints gbc, int row) {
         JPanel spacer = new JPanel();
+        spacer.setOpaque(false);
+
         gbc.gridx = 0;
         gbc.gridy = row;
+        gbc.gridwidth = 2;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         panel.add(spacer, gbc);
