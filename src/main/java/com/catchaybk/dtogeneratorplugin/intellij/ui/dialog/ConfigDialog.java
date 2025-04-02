@@ -8,14 +8,22 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiPackage;
+import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.util.TextFieldCompletionProvider;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
 import org.codehaus.plexus.util.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
@@ -33,14 +41,16 @@ import java.util.stream.Collectors;
  */
 public class ConfigDialog extends DialogWrapper {
     // 常量定義
-    private static final String TITLE = "DTO Generator Configuration";
+    private static final String TITLE = "DTO Generator 配置";
     private static final String REMEMBERED_AUTHOR_KEY = "dto.generator.remembered.author";
-    private static final String[] MESSAGE_DIRECTIONS = {"無", "上行", "下行"};
-    private static final String[] JAVA_VERSIONS = {"Java 8", "Java 17"};
+    private static final String[] MESSAGE_DIRECTIONS = { "無", "上行", "下行" };
+    private static final String[] JAVA_VERSIONS = { "Java 8", "Java 17" };
     private static final int LABEL_WIDTH = 150;
-    private static final int FIELD_HEIGHT = 30;
-    private static final int SCROLL_WIDTH = 800;
-    private static final int SCROLL_HEIGHT = 600;
+    private static final int FIELD_HEIGHT = 32;
+    private static final int SCROLL_WIDTH = 850;
+    private static final int SCROLL_HEIGHT = 650;
+    private static final Color HEADER_COLOR = new JBColor(new Color(240, 240, 240), new Color(50, 50, 50));
+    private static final Color TOOLTIP_BACKGROUND = new JBColor(new Color(255, 255, 225), new Color(60, 63, 65));
     private static final String[] JSON_STYLES = {
             "原始格式 (studentName -> studentName)",
             "全大寫 (studentName -> STUDENTNAME)",
@@ -79,13 +89,17 @@ public class ConfigDialog extends DialogWrapper {
      * @param initialPackage 初始包路徑
      */
     public ConfigDialog(String msgId, String author, String mainClassName,
-                        boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
-                        Project project, String initialPackage) {
+            boolean isJava17, boolean isUpstream, Map<Integer, List<String>> levelTypesMap,
+            Project project, String initialPackage) {
         super(true);
         this.project = project;
         this.levelTypesMap = levelTypesMap;
         this.config = new ConfigData(msgId, author, mainClassName, isJava17, isUpstream, initialPackage);
         this.ui = new UIComponents();
+
+        UIManager.put("ToolTip.background", TOOLTIP_BACKGROUND);
+        UIManager.put("ToolTip.border", BorderFactory.createLineBorder(JBColor.border()));
+        UIManager.put("ToolTip.font", UIUtil.getToolTipFont().deriveFont(12f));
 
         init();
         setTitle(TITLE);
@@ -100,7 +114,26 @@ public class ConfigDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
-        mainPanel.setBorder(JBUI.Borders.empty(10));
+        mainPanel.setBorder(JBUI.Borders.empty(5));
+
+        // 創建頂部標題
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(HEADER_COLOR);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                new MatteBorder(0, 0, 1, 0, JBColor.border()),
+                JBUI.Borders.empty(12, 15)));
+
+        JLabel titleLabel = new JBLabel("配置 DTO 生成參數");
+        titleLabel.setFont(UIUtil.getLabelFont().deriveFont(Font.BOLD, 16f));
+        headerPanel.add(titleLabel, BorderLayout.CENTER);
+
+        // 添加一個提示標籤
+        JLabel helpLabel = new JBLabel("<html><body><i>填寫配置以生成標準化的DTO類，包含序列化支持和驗證</i></body></html>");
+        helpLabel.setFont(UIUtil.getFont(UIUtil.FontSize.SMALL, helpLabel.getFont()));
+        helpLabel.setForeground(JBColor.GRAY);
+        headerPanel.add(helpLabel, BorderLayout.SOUTH);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
 
         // 創建基本配置板
         JComponent[] components = {
@@ -140,12 +173,14 @@ public class ConfigDialog extends DialogWrapper {
         // 使用 BoxLayout 來控制垂直布局
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBorder(JBUI.Borders.empty(0, 5, 5, 5));
         contentPanel.add(basicPanel);
         contentPanel.add(Box.createVerticalStrut(10)); // 添加固定間距
         contentPanel.add(configPanel);
 
         // 將整個內容放入滾動面板
         JBScrollPane scrollPane = new JBScrollPane(contentPanel);
+        scrollPane.setBorder(JBUI.Borders.empty());
         scrollPane.setPreferredSize(new Dimension(SCROLL_WIDTH, SCROLL_HEIGHT));
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -412,13 +447,13 @@ public class ConfigDialog extends DialogWrapper {
     protected ValidationInfo doValidate() {
         // 只驗證必要的字段
         if (getTargetPackage().trim().isEmpty()) {
-            return new ValidationInfo("請選擇目標包路徑", ui.mainClassField);
+            return new ValidationInfo("請選擇目標包路徑", ui.packageChooser);
         }
         if (getMainClassName().trim().isEmpty()) {
             return new ValidationInfo("主類名不能為空", ui.mainClassField);
         }
         if (getAuthor().trim().isEmpty()) {
-            return new ValidationInfo("請輸入作者名稱", ui.mainClassField);
+            return new ValidationInfo("請輸入作者名稱", ui.authorField);
         }
         return null;
     }
@@ -465,7 +500,7 @@ public class ConfigDialog extends DialogWrapper {
         final String initialPackage;
 
         ConfigData(String msgId, String author, String mainClassName,
-                   boolean isJava17, boolean isUpstream, String initialPackage) {
+                boolean isJava17, boolean isUpstream, String initialPackage) {
             this.msgId = msgId;
             this.author = author;
             this.mainClassName = mainClassName;
@@ -497,20 +532,36 @@ public class ConfigDialog extends DialogWrapper {
         UIComponents() {
             packageChooser = createPackageChooser();
             msgIdField = createTextField(config.msgId);
+            msgIdField.setToolTipText("輸入MSGID，用於生成類名前綴，例如：CSTMR_INF 客戶資訊");
+
             directionComboBox = createDirectionComboBox();
+            directionComboBox.setToolTipText("選擇電文的方向，影響類名的後綴（Tranrq/Tranrs）");
+
             tranIdPanel = new JPanel(new GridBagLayout());
             tranIdField = createTextField("");
+            tranIdField.setToolTipText("電文ID，用於生成類名前綴，自動從MSGID提取");
+
             authorField = createTextField(config.author);
+            authorField.setToolTipText("輸入作者名稱，將顯示在生成的類文檔註解中");
+
             rememberAuthorBox = new JCheckBox("記住作者", !config.author.isEmpty());
+            rememberAuthorBox.setToolTipText("下次打開時自動填充作者名稱");
+
             javaVersionBox = createJavaVersionBox();
+            javaVersionBox.setToolTipText("選擇Java版本，決定使用jakarta或javax的驗證註解");
+
             mainClassField = createTextField(config.mainClassName);
+            mainClassField.setToolTipText("主類的名稱，會根據MSGID和電文方向自動生成");
+
             jsonPropertyStyleCombo = new JComboBox<>(JSON_STYLES);
+            jsonPropertyStyleCombo.setToolTipText("選擇JSON屬性的格式風格，影響@JsonProperty註解的值");
             jsonPropertyStyleCombo.addActionListener(e -> updateJsonAliasList());
 
             jsonAliasStyleList = new JList<>(JSON_ALIAS_OPTIONS);
             jsonAliasStyleList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             jsonAliasStyleList.setVisibleRowCount(4);
             jsonAliasStyleList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            jsonAliasStyleList.setToolTipText("選擇JSON別名的格式風格，影響@JsonAlias註解的值");
 
             jsonAliasScrollPane = new JBScrollPane(jsonAliasStyleList);
             jsonAliasScrollPane.setPreferredSize(new Dimension(400, 100));
@@ -523,6 +574,12 @@ public class ConfigDialog extends DialogWrapper {
 
             jsonPropertyStyleCombo.setSelectedItem("原始格式");
             updateJsonAliasList();
+
+            // 添加狀態提示標籤
+            JPanel statusPanel = new JPanel(new BorderLayout());
+            JLabel statusLabel = new JLabel("<html><font color='gray'>* 必填欄位</font></html>");
+            statusPanel.add(statusLabel, BorderLayout.EAST);
+            jsonAliasPanel.add(statusPanel, BorderLayout.SOUTH);
         }
 
         private TextFieldWithBrowseButton createPackageChooser() {
@@ -530,6 +587,7 @@ public class ConfigDialog extends DialogWrapper {
             chooser.setText(config.initialPackage);
             chooser.addActionListener(e -> showPackageChooserDialog(chooser));
             chooser.getTextField().setEditable(true);
+            chooser.getTextField().setToolTipText("輸入或選擇目標包路徑，生成的DTO類將放在此包下");
             return chooser;
         }
 
