@@ -47,6 +47,7 @@ public class ClassGenerator {
     private Set<String> collectImports(List<Field> fields) {
         Set<String> imports = new HashSet<>();
         imports.add("com.fasterxml.jackson.annotation.JsonProperty");
+        imports.add("java.io.Serializable");
 
         if (!config.jsonAliasStyles.isEmpty()) {
             imports.add("com.fasterxml.jackson.annotation.JsonAlias");
@@ -102,7 +103,9 @@ public class ClassGenerator {
 
     private void generateClassDefinition(StringBuilder sb, String className, List<Field> fields) {
         sb.append("@Data\n");
-        sb.append("public class ").append(className).append(" {\n\n");
+        sb.append("public class ").append(className).append(" implements Serializable {\n\n");
+        sb.append("    /** serialVersionUID */\n");
+        sb.append("    private static final long serialVersionUID = 1L;\n\n");
         generateFields(sb, fields);
         sb.append("}\n");
     }

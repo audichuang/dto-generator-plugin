@@ -408,6 +408,17 @@ public class Field {
                     ValidationMessageSettingDialog.getDigitsMessage(getCamelCaseName(), comments, size)));
         }
 
+        // 添加 Valid 註解（用於包含需要驗證對象的List）
+        if (isList() && dataType != null) {
+            String genericType = "";
+            if (dataType.contains("<") && dataType.contains(">")) {
+                genericType = dataType.substring(dataType.indexOf("<") + 1, dataType.lastIndexOf(">")).trim();
+            }
+            if (!isPrimitiveOrWrapperType(genericType)) {
+                annotations.add("@Valid");
+            }
+        }
+
         return String.join("\n    ", annotations);
     }
 
