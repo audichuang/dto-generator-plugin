@@ -8,7 +8,7 @@
     <name>DTO Generator Pro</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="audi51408@gmail.com" url="https://www.google.com">Audi</vendor>
+    <vendor email="audi51408@gmail.com" url="https://www.google.com">CatchayBK</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
@@ -125,37 +125,16 @@ public class MainDTO {
 
         <h3>系統需求：</h3>
         <ul>
-            <li>IntelliJ IDEA 2021.1 或更新版本</li>
-            <li>Java 8 或更新版本</li>
+            <li>IntelliJ IDEA 2024.1 或更新版本</li>
+            <li>Java 17 或更新版本</li>
         </ul>
 
         <h3>特別說明：</h3>
         <p>本插件特別適合需要處理大量 DTO 生成的專案，能夠顯著提高開發效率。支援從 Excel 直接複製資料，自動處理命名規範，並生成符合專案要求的程式碼結構。</p>
     ]]></description>
 
-    <change-notes><![CDATA[
-        <h3>版本 1.0.0</h3>
-        <ul>
-            <li>首次發布</li>
-            <li>支援多層級 DTO 生成</li>
-            <li>支援結構化資料直接貼上</li>
-            <li>整合 Jackson 註解</li>
-            <li>整合 Lombok 功能</li>
-        </ul>
-        <h3>v1.2.0</h3>
-        <ul>
-            <li>新增 Pattern 正則表達式驗證功能</li>
-            <li>新增驗證消息自定義配置</li>
-            <li>優化配置界面，提升用戶體驗</li>
-            <li>改進類型識別和處理機制</li>
-            <li>修復已知問題和改進性能</li>
-        </ul>
-        <h3>v1.2.1</h3>
-        <ul>
-            <li>新增 註解支援多行</li>
-            <li>修正 大小駝峰轉換錯誤問題</li>
-        </ul>
-    ]]></change-notes>
+    <!-- 讓插件文件中的通知和更改記錄從build.gradle.kts中讀取 -->
+
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>

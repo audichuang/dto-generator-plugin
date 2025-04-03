@@ -64,7 +64,7 @@ public class GeneratorDialog extends DialogWrapper {
     private String mainClassName = "Main";
     private boolean isJava17;
     private String msgId;
-    private boolean isUpstream = true;
+    private boolean isUpstream = false;
 
     public GeneratorDialog(Project project) {
         super(true);
@@ -348,21 +348,20 @@ public class GeneratorDialog extends DialogWrapper {
         try {
             // 創建配置對話框並賦值給成員變量
             configDialog = createConfigDialog();
-            
+
             // 顯示對話框並等待結果
             if (configDialog != null && configDialog.showAndGet()) {
                 updateConfigurationFromDialog();
                 configurationDone = true;
-    
+
                 // 顯示配置完成提示
                 showCompletionNotification();
             }
         } catch (Exception e) {
             Messages.showErrorDialog(
-                project, 
-                "配置對話框打開失敗：" + e.getMessage(), 
-                "錯誤"
-            );
+                    project,
+                    "配置對話框打開失敗：" + e.getMessage(),
+                    "錯誤");
             e.printStackTrace();
         }
     }
@@ -384,7 +383,7 @@ public class GeneratorDialog extends DialogWrapper {
                 author,
                 mainClassName,
                 isJava17,
-                isUpstream,
+                false,
                 collectLevelTypes(),
                 project,
                 getCurrentPackage());

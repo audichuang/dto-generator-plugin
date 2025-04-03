@@ -650,7 +650,7 @@ public class ConfigDialog extends DialogWrapper {
             msgIdField.setText(config.msgId);
 
             // 初始化電文方向
-            directionComboBox.setSelectedIndex(config.isUpstream ? 1 : 2);
+            directionComboBox.setSelectedIndex(0);
 
             // 重要：在所有組件初始化完成後再添加事件監聽器
             addEventListeners();
