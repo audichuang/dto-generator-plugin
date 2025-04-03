@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.catchaybk"
-version = "1.2.1"
+version = "1.3.0"
 
 repositories {
     mavenCentral()
@@ -42,11 +42,11 @@ tasks {
 
 intellijPlatform {
     pluginConfiguration {
-        name.set("DTO Generator Pro")
+        name.set("DTO Generator")
         version.set(project.version.toString())
         
         vendor {
-            name.set("CatchayBK")
+            name.set("AudiChuang")
             email.set("audi51408@gmail.com")
             url.set("https://www.google.com")
         }

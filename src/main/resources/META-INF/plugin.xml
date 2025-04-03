@@ -5,10 +5,10 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>DTO Generator Pro</name>
+    <name>DTO Generator</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="audi51408@gmail.com" url="https://www.google.com">CatchayBK</vendor>
+    <vendor email="audi51408@gmail.com" url="https://www.google.com">AudiChuang</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
